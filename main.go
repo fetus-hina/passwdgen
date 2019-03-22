@@ -9,10 +9,6 @@ import (
 	"os"
 )
 
-const (
-	version string = "0.0.1"
-)
-
 func main() {
 	if err := randomInit(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -47,6 +43,9 @@ func doMain() int {
 func generatePasswords(config config) int {
 	generator := config.createGenerator()
 	for i := 0; i < config.countToGenerate; i++ {
+		if i > 0 {
+			fmt.Println("")
+		}
 		password, err := generator.generate()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
