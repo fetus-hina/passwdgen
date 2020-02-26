@@ -29,7 +29,7 @@ func (gen PasswordGenerator) generate() (Password, error) {
 	}
 
 	return Password{
-		plain: string(password),
+		Plain: string(password),
 	}, nil
 }
 

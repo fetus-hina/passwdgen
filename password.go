@@ -10,11 +10,23 @@ import (
 	_ "github.com/GehirnInc/crypt/sha512_crypt"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
+	"strings"
 )
 
 // Password ... 生成されたパスワードを表す構造体
 type Password struct {
-	plain string
+	Plain string
+}
+
+func (p Password) Hash() HashedPassword {
+	return HashedPassword{
+		Md5:      p.MD5Hash(),
+		Sha256:   p.SHA256Hash(),
+		Sha512:   p.SHA512Hash(),
+		Bcrypt:   p.BcryptHash(),
+		Argon2i:  p.Argon2iHash(),
+		Argon2id: p.Argon2idHash(),
+	}
 }
 
 // MD5Hash ... MD5 ハッシュ化パスワードを生成
@@ -46,7 +58,7 @@ func (p Password) SHA512Hash() string {
 
 // BcryptHash ... Bcrypt ハッシュ化パスワードを生成
 func (p Password) BcryptHash() string {
-	if bytes, err := bcrypt.GenerateFromPassword([]byte(p.plain), bcrypt.DefaultCost); err != nil {
+	if bytes, err := bcrypt.GenerateFromPassword([]byte(p.Plain), bcrypt.DefaultCost); err != nil {
 		panic(err)
 	} else {
 		return string(bytes)
@@ -73,7 +85,7 @@ func (p Password) argon2HashImpl(
 	hashFunc func([]byte, []byte, uint32, uint32, uint8, uint32) []byte,
 ) string {
 	saltBin := p.binarySalt(16)
-	bytes := hashFunc([]byte(p.plain), saltBin, time, memory, threads, 32)
+	bytes := hashFunc([]byte(p.Plain), saltBin, time, memory, threads, 32)
 	return fmt.Sprintf(
 		"$%s$v=%d$m=%d,t=%d,p=%d$%s$%s",
 		algoTag,
@@ -91,17 +103,15 @@ func (p Password) b64WithoutPadding(binary []byte) string {
 }
 
 func (p Password) String() string {
-	return p.plain + "\n" +
-		"    MD5:      " + p.MD5Hash() + "\n" +
-		"    SHA-256:  " + p.SHA256Hash() + "\n" +
-		"    SHA-512:  " + p.SHA512Hash() + "\n" +
-		"    Bcrypt:   " + p.BcryptHash() + "\n" +
-		"    Argon2i:  " + p.Argon2iHash() + "\n" +
-		"    Argon2id: " + p.Argon2idHash() + "\n"
+	result := p.Plain + "\n"
+	for _, line := range strings.Split(p.Hash().String(), "\n") {
+		result += "    " + line + "\n"
+	}
+	return result
 }
 
 func (p Password) cryptHash(algo crypt.Crypter, prefix string) (string, error) {
-	return algo.Generate([]byte(p.plain), []byte(prefix))
+	return algo.Generate([]byte(p.Plain), []byte(prefix))
 }
 
 func (p Password) salt(length int) string {

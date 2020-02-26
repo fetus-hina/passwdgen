@@ -15,6 +15,10 @@ all: .gitignore $(BINARIES)
 clean:
 	rm -rfv $(BINARIES) vendor
 
+.PHONY: $(SOURCES)
+$(SOURCES):
+	gofmt -w -s $@
+
 .gitignore: .gitignore.in
 	curl -fsSL 'https://www.gitignore.io/api/go,vim,emacs,visualstudiocode' | cat - $< > $@
 
