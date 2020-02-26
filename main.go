@@ -1,32 +1,12 @@
 package main
 
 import (
-	crand "crypto/rand"
 	"fmt"
-	"math"
-	"math/big"
-	"math/rand"
 	"os"
 )
 
 func main() {
-	if err := randomInit(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
-	}
-
 	os.Exit(doMain())
-}
-
-// 乱数シードの初期化
-func randomInit() error {
-	seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
-	if err != nil {
-		return err
-	}
-
-	rand.Seed(seed.Int64())
-	return nil
 }
 
 func doMain() int {

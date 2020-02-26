@@ -1,6 +1,9 @@
 package main
 
-import "math/rand"
+import (
+	"crypto/rand"
+	"math/big"
+)
 
 const (
 	numbers       string = "0123456789"
@@ -75,6 +78,14 @@ func newCharacterGenerator(pat Pattern) characterGenerator {
 }
 
 func (gen characterGenerator) generate() byte {
-	index := rand.Intn(len(gen.candidates))
+	index := gen.generateIntn(len(gen.candidates))
 	return gen.candidates[index]
+}
+
+func (gen characterGenerator) generateIntn(max int) int {
+	result, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		panic(err)
+	}
+	return int(result.Int64())
 }
