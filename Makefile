@@ -31,15 +31,19 @@ bin/passwdgen.mac.x64: vendor
 bin/passwdgen.x64: vendor
 	@mkdir -p bin
 	GOOS=linux GOARCH=amd64 go build -o $@ .
+	strip $@
 
 bin/passwdgen.x64.exe: vendor
 	@mkdir -p bin
 	GOOS=windows GOARCH=amd64 go build -o $@ .
+	strip $@
 
 bin/passwdgen.x86: vendor
 	@mkdir -p bin
 	GOOS=linux GOARCH=386 go build -o $@ .
+	strip $@
 
 bin/passwdgen.x86.exe: vendor
 	@mkdir -p bin
 	GOOS=windows GOARCH=386 go build -o $@ .
+	strip $@
