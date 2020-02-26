@@ -14,7 +14,7 @@ clean:
 	rm -rfv $(BINARIES) vendor
 
 .gitignore: .gitignore.in
-	curl -fsSL 'https://www.gitignore.io/api/go,vim,emacs,visualstudiocode' | cat $< - > $@
+	curl -fsSL 'https://www.gitignore.io/api/go,vim,emacs,visualstudiocode' | cat - $< > $@
 
 vendor: go.mod go.sum
 	go mod vendor
