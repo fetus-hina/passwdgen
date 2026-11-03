@@ -39,7 +39,7 @@ PHP 製のパスワードジェネレータ `passwdgen.php` を TypeScript に�
 - `bin/passwdgen` は **CommonJS 形式**で出力します（esbuild の `--format=cjs --platform=node --target=node24`）。拡張子のないファイルをどのディレクトリにコピーしても、確実に動かすためです。
 - CJS ではトップレベル `await` が使えないので、エントリポイントは `async function main()` を呼び出す形にします。
 - shebang は esbuild の `banner` で付けます。ビルド後に `chmod +x` します。
-- ソースコード自体は ESM の構文（`import` / `export`）で書きます。
+- ソースコード自体は ESM の構文（`import` / `export`）で書きます。相対 import には `.ts` 拡張子を付けます（`allowImportingTsExtensions`）。
 
 ## コマンド
 
@@ -65,6 +65,8 @@ Makefile の各ターゲットは npm scripts を呼び出す薄いラッパー�
 ├── package-lock.json
 ├── tsconfig.json
 ├── vitest.config.ts       # 必要な場合のみ
+├── scripts/
+│   └── build.ts           # esbuild によるビルド。node scripts/build.ts で直接実行する
 ├── .gitignore             # bin/, node_modules/
 ├── src/
 │   ├── main.ts            # エントリポイント。process.argv を run() に渡し、終了コードを設定する

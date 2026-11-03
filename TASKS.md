@@ -14,7 +14,7 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 ## 現在の状態
 
 - 最終更新：2026-11-03
-- 現在のフェーズ：フェーズ 0 まで完了。次はフェーズ 1 です。
+- 現在のフェーズ：フェーズ 1 まで完了。次はフェーズ 2 です。
 - 環境：Node.js v24.21.0、php、openssl が利用可能（2026-11-03 に確認）
 
 ---
@@ -27,28 +27,28 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 
 ## フェーズ 1：プロジェクトの雛形
 
-- [ ] 1-1. `package.json` を作る
+- [x] 1-1. `package.json` を作る
   - `"private": true`、`"type": "module"`、`"engines": { "node": ">=24" }`、`"license": "MIT"`、`"author": "AIZAWA Hina <hina@fetus.jp>"`
   - scripts：`typecheck`（`tsc --noEmit`）、`build`、`test`（`vitest run`）、`clean`
   - 完了条件：`npm install` が通り、`package-lock.json` ができる
-- [ ] 1-2. 依存パッケージを入れる
+- [x] 1-2. 依存パッケージを入れる
   - `dependencies`：`bcryptjs`、`hash-wasm`
   - `devDependencies`：`typescript`、`esbuild`、`vitest`、`@types/node`（必要なら `@types/bcryptjs`）
   - 完了条件：`npm ci` が通る
-- [ ] 1-3. `tsconfig.json` を作る
+- [x] 1-3. `tsconfig.json` を作る
   - `strict: true`、`noEmit: true`、`module` / `moduleResolution` は `NodeNext` か `Bundler`、`target` は ES2024 前後
   - `src/` と `test/` を型チェックの対象にする
   - 完了条件：空に近い `src/main.ts` で `npm run typecheck` が通る
-- [ ] 1-4. ビルドスクリプトを作る
+- [x] 1-4. ビルドスクリプトを作る
   - esbuild：`--bundle --platform=node --target=node24 --format=cjs`、shebang `#!/usr/bin/env node` は banner で付ける、出力先は `bin/passwdgen`
   - ビルド後に `chmod +x bin/passwdgen` を実行する
-  - バンドルする依存パッケージ（bcryptjs、hash-wasm）のライセンス表記が `bin/passwdgen` に残るようにする（esbuild の `legalComments` を確認する）
+  - バンドルする依存パッケージ（bcryptjs、hash-wasm）のライセンス表記が `bin/passwdgen` に残るようにする（`legalComments: 'eof'` を設定済み。依存を実際に import した時点で、末尾に表記が出ることを 3-3 / 3-4 で確認する）
   - 完了条件：`npm run build` で `bin/passwdgen` ができ、`./bin/passwdgen` で実行できる
-- [ ] 1-5. `Makefile` を作る
+- [x] 1-5. `Makefile` を作る
   - `all`（typecheck → build）、`test`、`clean`。すべて `.PHONY` にする
   - 完了条件：`make`、`make test`、`make clean` がそれぞれ動く
-- [ ] 1-6. `.gitignore` を作る（`bin/`、`node_modules/`）
-- [ ] 1-7. vitest の動作確認用に、ダミーのテストを1つ置いて通す（フェーズ 2 以降で本物のテストに置き換える）
+- [x] 1-6. `.gitignore` を作る（`bin/`、`node_modules/`）
+- [x] 1-7. vitest の動作確認用に、ダミーのテストを1つ置いて通す（フェーズ 2 以降で本物のテストに置き換える）
 
 ## フェーズ 2：テストベクタの作成
 
@@ -111,3 +111,8 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 引き継ぎ事項、ハマった点、ユーザーに確認して決まったことなどを、日付付きで書いてください。
 
 - 2026-11-03：方針を決め、ドキュメント3点を作成した。git の初期コミット `805b7ed init` は空で、`passwdgen.php` は untracked。
+- 2026-11-03：フェーズ 1 完了。
+  - 導入したバージョン：typescript 7.0.2、esbuild 0.28.2、vitest 5.1.0、@types/node 24.x、bcryptjs 3.0.3（型定義同梱なので `@types/bcryptjs` は不要）、hash-wasm 4.12.0。
+  - ビルドスクリプトは `scripts/build.ts` で、Node 24 の型ストリップ機能を使い `node scripts/build.ts` で直接実行している。
+  - tsconfig は `module: nodenext` + `allowImportingTsExtensions`。**相対 import には `.ts` 拡張子を付ける**こと。
+  - npm 11 は install script をデフォルトで実行しないので、`npm ci` で esbuild の postinstall に関する警告が出る。`@esbuild/linux-x64` が optionalDependencies として入るため、esbuild は問題なく動く。
