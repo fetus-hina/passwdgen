@@ -10,13 +10,13 @@
 
 ## プロジェクト概要
 
-PHP 製のパスワードジェネレータ `passwdgen.php` を TypeScript に移植します。
+PHP 製のパスワードジェネレータ `passwdgen.php` を TypeScript に移植したものです。
 
 - ソースは TypeScript で書き、esbuild で **依存込みの1ファイル** `bin/passwdgen` にバンドルします。
 - `bin/passwdgen` は `#!/usr/bin/env node` で始まる実行可能ファイルです。tsc や `node_modules` がない環境でも、Node.js 24 さえあれば動きます。
 - ビルドも実行も、ホストの Node.js 24 を直接使います（Docker などは使いません）。
 
-`passwdgen.php` は移植元の参照実装です。TASKS.md の最後のフェーズで削除します。それまでは**変更も削除もしないでください**。
+移植元の `passwdgen.php` は、移植の完了時に削除しました（一度もコミットしていないので、git の履歴にもありません）。仕様の基準はこの AGENTS.md です。PHP 版と同じ挙動であることは、`test/vectors.ts` のテストベクタ（PHP と openssl で生成した値）で担保しています。
 
 ## 技術スタック
 
@@ -97,7 +97,7 @@ Makefile の各ターゲットは npm scripts を呼び出す薄いラッパー�
 
 ## 仕様
 
-基本は PHP 版と同じ挙動です。PHP 版と意図的に変えた点には **【変更】** と付けています。
+基本は PHP 版と同じ挙動です。PHP 版から意図的に変えた点には **【変更】** と付けています。
 
 ### コマンドライン
 
@@ -122,6 +122,7 @@ passwdgen [count] [length] [mode] [--no-hash]
 
 - エラーメッセージは **stderr** に出力し、終了コード 1 で終了します。**【変更】** PHP 版では stdout に出力していました。
 - 引数は count → length → mode の順に検証し、最初に見つかったエラーだけを報告します。
+- `passwdgen 10 | head -1` のようにパイプの読み手が先に終了した場合（stdout への書き込みが EPIPE）は、何も出力せず終了コード 0 で終了します。
 
 | 条件 | メッセージ |
 |---|---|
@@ -160,7 +161,7 @@ passwdgen [count] [length] [mode] [--no-hash]
 
 ### 出力フォーマット
 
-出力は PHP 版と**一字一句同じ**にします。
+出力は PHP 版と**一字一句同じ**形式です。他のツールから使われている可能性があるので、ユーザーの確認なしに変えないでください。
 
 ```
 Generate 2 password(s), length=12, mode=standard

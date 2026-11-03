@@ -14,8 +14,8 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 ## 現在の状態
 
 - 最終更新：2026-11-03
-- 現在のフェーズ：フェーズ 5 まで完了。次はフェーズ 6 です。
-- 環境：Node.js v24.21.0、php、openssl が利用可能（2026-11-03 に確認）
+- 現在のフェーズ：**すべてのタスクが完了**（フェーズ 6 まで）。新しい作業は、フェーズを追加して管理する。
+- 環境：Node.js v24.21.0、php 8.5.12、openssl 3.5.8 が利用可能（2026-11-03 に確認）
 
 ---
 
@@ -102,8 +102,8 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 - [x] 6-1. PHP 版との比較：同じ引数で `passwdgen.php` と `bin/passwdgen` を実行し、出力の形（行数、各行の書式）が同じことを確認する。PHP 版で生成したパスワードとハッシュを TS 版で検証し、その逆も確認する
 - [x] 6-2. `bin/passwdgen` をリポジトリの外（`package.json` も `node_modules` もないディレクトリ）にコピーして動くことを確認する（`test/smoke.test.ts` で、上位の `package.json` の type が なし / module / commonjs の3通りを自動テストしている）
 - [x] 6-3. `make clean && npm ci && make && make test` が通ることを確認する
-- [ ] 6-4. README.md と AGENTS.md を実装に合わせて更新する（README の「移植作業中」の注意書きを消す、ディレクトリ構成を実際のものに合わせる）
-- [ ] 6-5. `passwdgen.php` を削除する（6-1 が終わってから）。AGENTS.md と README.md から、PHP 版を参照している記述を整理する
+- [x] 6-4. README.md と AGENTS.md を実装に合わせて更新する（README の「移植作業中」の注意書きを消す、ディレクトリ構成を実際のものに合わせる）
+- [x] 6-5. `passwdgen.php` を削除する（6-1 が終わってから）。AGENTS.md と README.md から、PHP 版を参照している記述を整理する
 
 ---
 
@@ -132,3 +132,4 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 - 2026-11-03：6-1、6-3 完了。
   - PHP 版と TS 版の出力の形は一致した。TS 版のハッシュを PHP（`crypt` / `password_verify` / `openssl passwd -apr1`）で、PHP 版のハッシュを TS 版の関数で検証し、すべて一致した。
   - 比較の途中で、`passwdgen 2 12 | head -1` のようにパイプ先が先に閉じると EPIPE のスタックトレースが出る不具合が見つかった。`src/main.ts` で stdout の EPIPE を捕まえ、静かに終了するよう修正し、スモークテストを追加した。
+- 2026-11-03：6-4、6-5 完了。README の「移植作業中」の注意書きを消し、AGENTS.md を実装に合わせて更新した。`passwdgen.php` を削除した（untracked のままだったので git の履歴にはない）。
