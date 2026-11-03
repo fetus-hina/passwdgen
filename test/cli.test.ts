@@ -196,19 +196,48 @@ describe('run', () => {
     expect(stderr).toBe('ERROR: length too short\n');
   });
 
-  test('出力に失敗したら、その時点で生成を止めてエラーで reject する', async () => {
-    let writes = 0;
+  /** stdout への書き込みを記録し、`failAt` 回目の書き込みで EPIPE を投げる Io で run() を実行する */
+  async function runUntilWriteFails(argv: string[], failAt: number) {
+    const written: string[] = [];
     const error = Object.assign(new Error('write EPIPE'), { code: 'EPIPE' });
-    const result = run(['1000', '8', 'alnum', '--no-hash'], {
-      stdout: async () => {
-        writes += 1;
-        if (writes >= 3) {
+    const result = run(argv, {
+      stdout: async (text) => {
+        if (written.length + 1 >= failAt) {
           throw error;
         }
+        written.push(text);
       },
       stderr: async () => {},
     });
     await expect(result).rejects.toBe(error);
-    expect(writes).toBe(3);
+    return written;
+  }
+
+  test('出力に失敗したら、その時点で生成を止めてエラーで reject する（plain）', async () => {
+    // 1回目：ヘッダと空行、2回目：1件目、3回目：2件目（ここで失敗）
+    const written = await runUntilWriteFails(['1000', '8', 'alnum', '--no-hash'], 3);
+    expect(written).toHaveLength(2);
+    expect(written[0]).toBe('Generate 1000 password(s), length=8, mode=alnum\n\n');
+    expect(written[1]).toMatch(/^[0-9A-Za-z]{8}\n$/);
+  });
+
+  test('出力に失敗したら、その時点で生成を止めてエラーで reject する（json）', async () => {
+    // 1回目："["、2回目：1件目、3回目：2件目（ここで失敗）。全件をまとめて出力していないことの確認でもある
+    const written = await runUntilWriteFails(['1000', '8', 'alnum', '--no-hash', '-f', 'json'], 3);
+    expect(written).toHaveLength(2);
+    expect(written[0]).toBe('[\n');
+    expect(written[1]).toMatch(/^  \{\n    "password": "[0-9A-Za-z]{8}",\n    "hash": \{\}\n  \}$/);
+  });
+
+  test('空文字列は書き込まない', async () => {
+    const written: string[] = [];
+    await run(['2', '8', '-n'], {
+      stdout: async (text) => {
+        written.push(text);
+      },
+      stderr: async () => {},
+    });
+    expect(written).toHaveLength(3);
+    expect(written).not.toContain('');
   });
 });

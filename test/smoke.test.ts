@@ -78,6 +78,15 @@ describe('bin/passwdgen', () => {
     expect(result.status).toBe('0');
   });
 
+  test('パイプの読み手が先に終了したら、すぐに生成を止める（json）', () => {
+    const started = Date.now();
+    const result = pipeToHead('100000000 8 alnum --no-hash -f json');
+    expect(Date.now() - started).toBeLessThan(5_000);
+    expect(result.stdout).toBe('[\n');
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe('0');
+  });
+
   // 拡張子のないファイルは、置いた場所の package.json の "type" で ESM / CJS が決まる。どちらでも動くことを確認する
   test.each(['none', 'module', 'commonjs'])('リポジトリの外にコピーしても動く（package.json の type: %s）', (type) => {
     const dir = join(workDir, type, 'bin');
