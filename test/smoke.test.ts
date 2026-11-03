@@ -38,6 +38,13 @@ describe('bin/passwdgen', () => {
     expect(result.stdout).toMatch(/^Usage: passwdgen /);
   });
 
+  test('-f json で JSON を出力する', () => {
+    const result = exec(`./${BIN}`, ['2', '12', '-f', 'json', '--hash=md5']);
+    expect(result.status).toBe(0);
+    const parsed = JSON.parse(result.stdout) as unknown[];
+    expect(parsed).toHaveLength(2);
+  });
+
   test('エラー時は終了コード 1', () => {
     const result = exec(`./${BIN}`, ['1', '12', 'nosuchmode']);
     expect(result.status).toBe(1);

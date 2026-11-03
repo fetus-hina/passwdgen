@@ -7,12 +7,21 @@ export const MIN_LENGTH = 8;
 /** bcrypt が扱えるパスワード長の上限に合わせる */
 export const MAX_LENGTH = 72;
 
+export const FORMATS = ['plain', 'json'] as const;
+export type Format = (typeof FORMATS)[number];
+export const DEFAULT_FORMAT: Format = 'plain';
+
+function isFormat(value: string): value is Format {
+  return (FORMATS as readonly string[]).includes(value);
+}
+
 export interface Options {
   readonly count: number;
   readonly length: number;
   readonly mode: Mode;
   /** 出力するハッシュ（出力順）。空なら出力しない */
   readonly hashes: readonly HashId[];
+  readonly format: Format;
 }
 
 export type ParseResult =
@@ -20,16 +29,17 @@ export type ParseResult =
   | { readonly kind: 'help' }
   | { readonly kind: 'error'; readonly error: string };
 
-type Field = 'count' | 'length' | 'mode';
+type Field = 'count' | 'length' | 'mode' | 'format';
 
 /** 値を取るオプション。ロング形式は `--name=value`、ショート形式は `-x value`（スペース区切り） */
 const VALUE_OPTIONS: ReadonlyArray<{ readonly field: Field; readonly short: string; readonly long: string }> = [
   { field: 'count', short: '-c', long: '--count' },
   { field: 'length', short: '-l', long: '--length' },
   { field: 'mode', short: '-m', long: '--mode' },
+  { field: 'format', short: '-f', long: '--format' },
 ];
 
-/** 位置引数がどの値に対応するか（先頭から順に） */
+/** 位置引数がどの値に対応するか（先頭から順に）。format は位置引数では指定できない */
 const POSITIONAL_FIELDS: readonly Field[] = ['count', 'length', 'mode'];
 
 /**
@@ -122,7 +132,7 @@ export function parseArgs(argv: readonly string[]): ParseResult {
       return failure(error);
     }
   }
-  const { count: countArg, length: lengthArg, mode: modeArg } = values;
+  const { count: countArg, length: lengthArg, mode: modeArg, format: formatArg } = values;
 
   const count = countArg === undefined ? DEFAULT_COUNT : parseInteger(countArg);
   if (count === undefined || count < 1) {
@@ -154,7 +164,12 @@ export function parseArgs(argv: readonly string[]): ParseResult {
     hashes = parsedHashes.hashes;
   }
 
-  return { kind: 'run', options: { count, length, mode, hashes } };
+  const format = formatArg ?? DEFAULT_FORMAT;
+  if (!isFormat(format)) {
+    return failure('format is invalid');
+  }
+
+  return { kind: 'run', options: { count, length, mode, hashes, format } };
 }
 
 /** `-` で始まり、負の数（`-1` など）に見えないものをオプションとみなす */

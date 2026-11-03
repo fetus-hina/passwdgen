@@ -113,8 +113,9 @@ passwdgen -h | --help
 | count | 1番目 | `-c N` | `--count=N` | `1` | 1 以上の整数 |
 | length | 2番目 | `-l N` | `--length=N` | `12` | 8 以上 72 以下の整数 |
 | mode | 3番目 | `-m MODE` | `--mode=MODE` | `standard` | 下の表のいずれか |
+| format | なし | `-f FMT` | `--format=FMT` | `plain` | `plain` または `json`（小文字のみ） |
 
-- count / length / mode は、位置引数でもオプションでも指定できます。オプションの値も、位置引数と同じ検証を受けます。
+- count / length / mode は、位置引数でもオプションでも指定できます。format はオプションでだけ指定できます。オプションの値も、位置引数と同じ検証を受けます。
 - ショートオプションは、値を次の引数として受け取ります（`-m alnum`）。`-malnum` のように続けて書く形式には対応しません（不明なオプションになります）。次の引数が `-` で始まっていても値として扱います（`-c -1` は count が不正というエラー）。
 - ロングオプションは `--mode=alnum` の形式だけを受け付けます。`--mode alnum` のようなスペース区切りはエラーにします。
 - 位置引数は、オプションの有無にかかわらず、常に count → length → mode の順に対応します。たとえば `passwdgen -c 2 5` の `5` は count に対応するので、count を2回指定したというエラーになります（length にはずらしません）。
@@ -139,7 +140,7 @@ passwdgen -h | --help
 ### エラー
 
 - エラーメッセージは **stderr** に出力し、終了コード 1 で終了します。
-- 引数の値は count → length → mode → hash の順に検証し、最初に見つかったエラーだけを報告します。
+- 引数の値は count → length → mode → hash → format の順に検証し、最初に見つかったエラーだけを報告します。
 - `passwdgen 10 | head -1` のようにパイプの読み手が先に終了した場合（stdout への書き込みが EPIPE）は、その時点で生成を止め、何も出力せず終了コード 0 で終了します。そのため `run()` は出力のたびに書き込みの完了を await します（`Io` の各関数は Promise を返します）。
 - 予期しない実行時エラー（EPIPE 以外の書き込みエラーなど）の場合は、エラー内容を stderr に出力し、終了コード 1 で終了します。
 
@@ -159,6 +160,7 @@ passwdgen -h | --help
 | `--hash=` に空の要素がある | `ERROR: hash has an empty item` |
 | `--hash=` に不明な識別子がある | `ERROR: unknown hash: <name>` |
 | `--hash` と `--no-hash` を併用した | `ERROR: --hash and --no-hash cannot be used together` |
+| format が不正 | `ERROR: format is invalid` |
 
 ### mode と文字集合
 
@@ -187,7 +189,9 @@ passwdgen -h | --help
 
 ### 出力フォーマット
 
-出力フォーマットは、他のツールから使われている可能性があるので、ユーザーの確認なしに変えないでください。
+出力フォーマットは、他のツールから使われている可能性があるので、ユーザーの確認なしに変えないでください。`-f` / `--format` で `plain`（デフォルト）と `json` を選べます。エラーメッセージは、どちらの形式でも stderr にテキストで出力します。
+
+#### plain
 
 ```
 Generate 2 password(s), length=12, mode=standard
@@ -204,6 +208,33 @@ Generate 2 password(s), length=12, mode=standard
 - ハッシュ行の先頭にはスペースが8個付きます。
 - 上の例は `--hash` を指定しない（デフォルトの）場合です。`--hash` を指定した場合は、指定したハッシュの行だけを出力します。
 - `-n` / `--no-hash` を付けた場合は、パスワードの行だけを出力します。ヘッダ行と空行は出力します。
+
+#### json
+
+```json
+[
+  {
+    "password": "<password1>",
+    "hash": {
+      "md5": "$1$<salt8>$<hash22>",
+      "apr1": "USERNAME:$apr1$<salt8>$<hash22>",
+      "bcrypt": "$2y$12$<salt22><hash31>",
+      "argon2id": "$argon2id$v=19$m=65536,t=4,p=1$<salt>$<hash>"
+    }
+  },
+  {
+    "password": "<password2>",
+    ...
+  }
+]
+```
+
+- 出力全体は、パスワードごとのオブジェクトの配列です。1件でも配列にします。
+- 出力は `JSON.stringify(array, null, 2)` に改行1つを足したものと同じです（インデントはスペース2つ）。
+- plain のヘッダ行と空行は出力しません。stdout は JSON だけです。
+- `hash` のキーはハッシュの識別子で、並びは出力順（下の「ハッシュ」の表の順）です。値は plain のハッシュ行と同じ文字列です（apr1 の `USERNAME:` も付けます）。
+- `-n` / `--no-hash` のときは `"hash": {}` を出力します（キーは省略しません）。
+- 全件を生成してから出力するのではなく、`[`、各パスワード、`]` の順に、生成しながら1件ずつ出力します。そのため、パイプが途中で閉じられた場合は不完全な JSON になります。
 
 ### ハッシュ
 

@@ -1,4 +1,13 @@
-import { DEFAULT_COUNT, DEFAULT_LENGTH, MAX_LENGTH, MIN_LENGTH, parseArgs } from './args.ts';
+import {
+  DEFAULT_COUNT,
+  DEFAULT_FORMAT,
+  DEFAULT_LENGTH,
+  FORMATS,
+  MAX_LENGTH,
+  MIN_LENGTH,
+  parseArgs,
+  type Options,
+} from './args.ts';
 import { generate } from './generate.ts';
 import { HASH_ALGORITHMS, HASH_GROUPS } from './hashes.ts';
 import { DEFAULT_MODE, MODES } from './modes.ts';
@@ -38,6 +47,8 @@ Options:
   -c, --count=N      same as the count argument
   -l, --length=N     same as the length argument
   -m, --mode=MODE    same as the mode argument
+  -f, --format=FMT   output format: ${FORMATS.join(' or ')} (default: ${DEFAULT_FORMAT})
+                     json prints an array of {"password": ..., "hash": {...}}
   --hash=LIST        print only the given hashes (comma-separated, see below)
   -n, --no-hash      print passwords only, without hashes
   -h, --help         show this help and exit
@@ -70,20 +81,46 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
     await io.stdout(helpText());
     return 0;
   }
-  const { count, length, mode, hashes } = parsed.options;
-  const lines = HASH_ALGORITHMS.filter(({ id }) => hashes.includes(id)).map(({ line }) => line);
+  const { count, length, mode, hashes, format } = parsed.options;
+  const algorithms = HASH_ALGORITHMS.filter(({ id }) => hashes.includes(id));
+  const writer = format === 'json' ? jsonWriter : plainWriter;
 
-  await io.stdout(`Generate ${count} password(s), length=${length}, mode=${mode}\n`);
-  await io.stdout('\n');
-
+  await io.stdout(writer.begin(parsed.options));
   for (let i = 0; i < count; ++i) {
     const password = generate(length, mode);
-    let block = `${password}\n`;
-    for (const line of lines) {
-      block += `${INDENT}${await line(password)}\n`;
+    const hashValues: Array<readonly [string, string]> = [];
+    for (const { id, line } of algorithms) {
+      hashValues.push([id, await line(password)]);
     }
-    await io.stdout(block);
+    await io.stdout(writer.entry(password, hashValues, i));
   }
+  await io.stdout(writer.end());
 
   return 0;
 }
+
+/** 出力形式ごとの書き出し方。1件ずつ出力できるよう、先頭・各パスワード・末尾に分けて文字列を返す */
+interface Writer {
+  begin(options: Options): string;
+  entry(password: string, hashes: ReadonlyArray<readonly [id: string, value: string]>, index: number): string;
+  end(): string;
+}
+
+const plainWriter: Writer = {
+  begin: ({ count, length, mode }) => `Generate ${count} password(s), length=${length}, mode=${mode}\n\n`,
+  entry: (password, hashes) => `${password}\n${hashes.map(([, value]) => `${INDENT}${value}\n`).join('')}`,
+  end: () => '',
+};
+
+/**
+ * 全体を配列にした JSON を、1件ずつ出力する。
+ * 出力全体は `JSON.stringify(entries, null, 2) + '\n'` と同じになる。
+ */
+const jsonWriter: Writer = {
+  begin: () => '[\n',
+  entry: (password, hashes, index) => {
+    const json = JSON.stringify({ password, hash: Object.fromEntries(hashes) }, null, 2);
+    return `${index > 0 ? ',\n' : ''}${json.replace(/^/gm, '  ')}`;
+  },
+  end: () => '\n]\n',
+};

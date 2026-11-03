@@ -4,9 +4,9 @@ import { parseArgs } from '../src/args.ts';
 const DEFAULT = ['md5', 'apr1', 'bcrypt', 'argon2id'];
 
 /** `hash`：true ならデフォルトのハッシュ、false ならハッシュなし、配列なら指定したハッシュ */
-const ok = (count: number, length: number, mode: string, hash: boolean | string[] = true) => ({
+const ok = (count: number, length: number, mode: string, hash: boolean | string[] = true, format = 'plain') => ({
   kind: 'run',
-  options: { count, length, mode, hashes: hash === true ? DEFAULT : hash === false ? [] : hash },
+  options: { count, length, mode, hashes: hash === true ? DEFAULT : hash === false ? [] : hash, format },
 });
 const ng = (message: string) => ({ kind: 'error', error: `ERROR: ${message}` });
 
@@ -140,6 +140,33 @@ describe('parseArgs：--hash', () => {
 
   test('値の検証は count → length → mode → hash の順', () => {
     expect(parseArgs(['--hash=bogus', '-m', 'bogus'])).toEqual(ng('mode is invalid'));
+  });
+});
+
+describe('parseArgs：-f / --format', () => {
+  test.each([
+    [['-f', 'plain'], ok(1, 12, 'standard', true, 'plain')],
+    [['-f', 'json'], ok(1, 12, 'standard', true, 'json')],
+    [['--format=json'], ok(1, 12, 'standard', true, 'json')],
+    [['3', '16', 'full', '-f', 'json', '-n'], ok(3, 16, 'full', false, 'json')],
+    [['--format=json', '--hash=md5'], ok(1, 12, 'standard', ['md5'], 'json')],
+  ])('%j', (argv, expected) => {
+    expect(parseArgs(argv)).toEqual(expected);
+  });
+
+  test.each([
+    [['-f', 'JSON'], ng('format is invalid')],
+    [['-f', 'xml'], ng('format is invalid')],
+    [['--format='], ng('format is invalid')],
+    [['-f'], ng('option requires a value: -f')],
+    [['--format'], ng('option requires a value: --format (use --format=VALUE)')],
+    [['--format', 'json'], ng('option requires a value: --format (use --format=VALUE)')],
+    [['-f', 'json', '--format=plain'], ng('format is specified twice')],
+    [['-fjson'], ng('unknown option: -fjson')],
+    // format は位置引数では指定できない
+    [['1', '12', 'standard', 'json'], ng('too many arguments')],
+  ])('%j', (argv, expected) => {
+    expect(parseArgs(argv)).toEqual(expected);
   });
 });
 

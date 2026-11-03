@@ -106,6 +106,7 @@ describe('run', () => {
     expect(text).toContain('-m, --mode=MODE');
     expect(text).toContain('-n, --no-hash');
     expect(text).toContain('--hash=LIST');
+    expect(text).toContain('-f, --format=FMT');
     for (const { id } of HASH_ALGORITHMS) {
       expect(text).toMatch(new RegExp(`^  ${id} +\\S`, 'm'));
     }
@@ -132,6 +133,60 @@ describe('run', () => {
     const [, , password = '', line = ''] = stdout.split('\n');
     expect(line).toMatch(/^ {8}\$argon2i\$v=19\$m=65536,t=4,p=1\$/);
     expect(await verifyArgon2(password, line.slice(8))).toBe(true);
+  });
+
+  describe('--format=json', () => {
+    test('全体を配列にし、2 スペースで pretty-print する', async () => {
+      const { code, stdout, stderr } = await capture(['3', '10', 'number', '-f', 'json', '--hash=md5,sha512']);
+      expect(code).toBe(0);
+      expect(stderr).toBe('');
+      const parsed = JSON.parse(stdout) as Array<{ password: string; hash: Record<string, string> }>;
+      // 1件ずつ出力しても、JSON.stringify で一度に整形したものと同じになる
+      expect(stdout).toBe(`${JSON.stringify(parsed, null, 2)}\n`);
+      expect(parsed).toHaveLength(3);
+      for (const entry of parsed) {
+        expect(Object.keys(entry)).toEqual(['password', 'hash']);
+        expect(entry.password).toMatch(/^[0-9]{10}$/);
+        expect(Object.keys(entry.hash)).toEqual(['md5', 'sha512']);
+        expect(md5crypt(entry.password, entry.hash.md5?.split('$')[2])).toBe(entry.hash.md5);
+        expect(sha512crypt(entry.password, entry.hash.sha512?.split('$')[2])).toBe(entry.hash.sha512);
+      }
+    });
+
+    test('1件でも配列で出力する', async () => {
+      const { stdout } = await capture(['1', '8', '--format=json', '--hash=md5']);
+      const parsed: unknown = JSON.parse(stdout);
+      expect(Array.isArray(parsed)).toBe(true);
+      expect(parsed).toHaveLength(1);
+      expect(stdout).toBe(`${JSON.stringify(parsed, null, 2)}\n`);
+    });
+
+    test('--no-hash のときは hash を空オブジェクトにする', async () => {
+      const { stdout } = await capture(['2', '8', '-f', 'json', '-n']);
+      const parsed = JSON.parse(stdout) as Array<{ password: string; hash: object }>;
+      expect(parsed.map((entry) => entry.hash)).toEqual([{}, {}]);
+      expect(stdout).toBe(`${JSON.stringify(parsed, null, 2)}\n`);
+    });
+
+    test('デフォルトのハッシュをシステムの順で出力し、apr1 には USERNAME: を付ける', async () => {
+      const { stdout } = await capture(['1', '16', '-f', 'json']);
+      const [entry] = JSON.parse(stdout) as Array<{ password: string; hash: Record<string, string> }>;
+      expect(Object.keys(entry?.hash ?? {})).toEqual(['md5', 'apr1', 'bcrypt', 'argon2id']);
+      expect(entry?.hash.apr1).toMatch(/^USERNAME:\$apr1\$/);
+    });
+
+    test('password に記号が含まれても正しい JSON になる', async () => {
+      const { stdout } = await capture(['20', '72', 'full', '-f', 'json', '-n']);
+      const parsed = JSON.parse(stdout) as Array<{ password: string }>;
+      for (const entry of parsed) {
+        expect(entry.password).toHaveLength(72);
+      }
+    });
+  });
+
+  test('-f plain は今までどおりの出力', async () => {
+    const { stdout } = await capture(['1', '10', 'number', '-f', 'plain', '-n']);
+    expect(stdout).toMatch(/^Generate 1 password\(s\), length=10, mode=number\n\n[0-9]{10}\n$/);
   });
 
   test('エラー時は stderr に出力し、終了コード 1 を返す', async () => {
