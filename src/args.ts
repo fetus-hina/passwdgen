@@ -18,33 +18,91 @@ export type ParseResult =
   | { readonly kind: 'help' }
   | { readonly kind: 'error'; readonly error: string };
 
+type Field = 'count' | 'length' | 'mode';
+
+/** 値を取るオプション。ロング形式は `--name=value`、ショート形式は `-x value`（スペース区切り） */
+const VALUE_OPTIONS: ReadonlyArray<{ readonly field: Field; readonly short: string; readonly long: string }> = [
+  { field: 'count', short: '-c', long: '--count' },
+  { field: 'length', short: '-l', long: '--length' },
+  { field: 'mode', short: '-m', long: '--mode' },
+];
+
+/** 位置引数がどの値に対応するか（先頭から順に） */
+const POSITIONAL_FIELDS: readonly Field[] = ['count', 'length', 'mode'];
+
 /**
  * コマンドライン引数（`process.argv.slice(2)`）を解析する。
- * 書式：`[count] [length] [mode] [-n | --no-hash]`、`-h` / `--help`
- * `-h` / `--help` があれば、ほかの引数に関係なく（不正な引数があっても）help を返す。
+ * 書式：`[options] [count] [length] [mode]`
+ * - count / length / mode は、位置引数でも `-c N` / `--count=N` などのオプションでも指定できる。
+ *   位置引数は常に count → length → mode の順に対応し、同じ値を2回指定するとエラーになる。
+ * - `-h` / `--help` があれば、ほかの引数に関係なく（不正な引数があっても）help を返す。
  */
 export function parseArgs(argv: readonly string[]): ParseResult {
   if (argv.some((arg) => arg === '-h' || arg === '--help')) {
     return { kind: 'help' };
   }
 
+  const values: Partial<Record<Field, string>> = {};
   const positional: string[] = [];
   let hash = true;
 
-  for (const arg of argv) {
+  const assign = (field: Field, value: string): string | undefined => {
+    if (values[field] !== undefined) {
+      return `${field} is specified twice`;
+    }
+    values[field] = value;
+    return undefined;
+  };
+
+  for (let i = 0; i < argv.length; ++i) {
+    const arg = argv[i] ?? '';
     if (arg === '-n' || arg === '--no-hash') {
       hash = false;
-    } else if (isOptionLike(arg)) {
-      return failure(`unknown option: ${arg}`);
-    } else {
-      positional.push(arg);
+      continue;
     }
+
+    const shortOption = VALUE_OPTIONS.find((o) => o.short === arg);
+    if (shortOption !== undefined) {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return failure(`option requires a value: ${arg}`);
+      }
+      ++i;
+      const error = assign(shortOption.field, value);
+      if (error !== undefined) {
+        return failure(error);
+      }
+      continue;
+    }
+
+    const longOption = VALUE_OPTIONS.find((o) => arg === o.long || arg.startsWith(`${o.long}=`));
+    if (longOption !== undefined) {
+      if (arg === longOption.long) {
+        return failure(`option requires a value: ${arg} (use ${arg}=VALUE)`);
+      }
+      const error = assign(longOption.field, arg.slice(longOption.long.length + 1));
+      if (error !== undefined) {
+        return failure(error);
+      }
+      continue;
+    }
+
+    if (isOptionLike(arg)) {
+      return failure(`unknown option: ${arg}`);
+    }
+    positional.push(arg);
   }
 
-  if (positional.length > 3) {
+  if (positional.length > POSITIONAL_FIELDS.length) {
     return failure('too many arguments');
   }
-  const [countArg, lengthArg, modeArg] = positional;
+  for (const [index, value] of positional.entries()) {
+    const error = assign(POSITIONAL_FIELDS[index] ?? 'mode', value);
+    if (error !== undefined) {
+      return failure(error);
+    }
+  }
+  const { count: countArg, length: lengthArg, mode: modeArg } = values;
 
   const count = countArg === undefined ? DEFAULT_COUNT : parseInteger(countArg);
   if (count === undefined || count < 1) {

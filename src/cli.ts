@@ -35,24 +35,30 @@ export function helpText(): string {
   const modes = Object.entries(MODES)
     .map(([name, { description }]) => `  ${name.padEnd(10)} ${description}`)
     .join('\n');
-  return `Usage: passwdgen [count] [length] [mode] [-n | --no-hash]
+  return `Usage: passwdgen [options] [count] [length] [mode]
 
 Generate random passwords and print their hashes.
 
-Arguments:
-  count      number of passwords to generate (default: ${DEFAULT_COUNT})
-  length     password length, ${MIN_LENGTH}-${MAX_LENGTH} (default: ${DEFAULT_LENGTH})
-  mode       character set (default: ${DEFAULT_MODE})
+Arguments (each can also be given as an option below):
+  count   number of passwords to generate (default: ${DEFAULT_COUNT})
+  length  password length, ${MIN_LENGTH}-${MAX_LENGTH} (default: ${DEFAULT_LENGTH})
+  mode    character set (default: ${DEFAULT_MODE})
+
+Options:
+  -c, --count=N      same as the count argument
+  -l, --length=N     same as the length argument
+  -m, --mode=MODE    same as the mode argument
+  -n, --no-hash      print passwords only, without hashes
+  -h, --help         show this help and exit
+
+  Short options take the value as the next argument (e.g. -m alnum).
+  Long options take the value after "=" (e.g. --mode=alnum).
 
 Modes:
 ${modes}
 
   standard and full always include lowercase, uppercase, digits and symbols,
   and never start or end with a symbol.
-
-Options:
-  -n, --no-hash  print passwords only, without hashes
-  -h, --help     show this help and exit
 
 Hashes printed under each password:
   MD5-crypt ($1$), apr1 ($apr1$, htpasswd format), bcrypt (cost 12), Argon2id

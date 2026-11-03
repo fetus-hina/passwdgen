@@ -40,6 +40,12 @@ describe('run', () => {
     expect(stdout).toMatch(/^Generate 2 password\(s\), length=10, mode=number\n\n[0-9]{10}\n[0-9]{10}\n$/);
   });
 
+  test('-c / -l / -m で指定した値を使う', async () => {
+    const { code, stdout } = await capture(['-m', 'number', '-l', '10', '-c', '2', '-n']);
+    expect(code).toBe(0);
+    expect(stdout).toMatch(/^Generate 2 password\(s\), length=10, mode=number\n\n[0-9]{10}\n[0-9]{10}\n$/);
+  });
+
   test('引数なしのデフォルト値をヘッダに表示する', async () => {
     const { stdout } = await capture(['--no-hash']);
     expect(stdout.split('\n')[0]).toBe('Generate 1 password(s), length=12, mode=standard');
@@ -88,11 +94,14 @@ describe('run', () => {
 
   test('使い方には書式、すべての mode、オプションが載っている', () => {
     const text = helpText();
-    expect(text).toMatch(/^Usage: passwdgen \[count\] \[length\] \[mode\] \[-n \| --no-hash\]\n/);
+    expect(text).toMatch(/^Usage: passwdgen \[options\] \[count\] \[length\] \[mode\]\n/);
     expect(text).toContain('8-72 (default: 12)');
     for (const mode of Object.keys(MODES)) {
       expect(text).toMatch(new RegExp(`^  ${mode} +\\S`, 'm'));
     }
+    expect(text).toContain('-c, --count=N');
+    expect(text).toContain('-l, --length=N');
+    expect(text).toContain('-m, --mode=MODE');
     expect(text).toContain('-n, --no-hash');
     expect(text).toContain('-h, --help');
     expect(text.endsWith('\n')).toBe(true);

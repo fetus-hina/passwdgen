@@ -21,17 +21,28 @@ make
 ## 使い方
 
 ```
-passwdgen [count] [length] [mode] [-n | --no-hash]
+passwdgen [options] [count] [length] [mode]
 passwdgen -h | --help
 ```
 
-| 引数 | 意味 | デフォルト |
-|---|---|---|
-| `count` | 生成する個数（1 以上） | `1` |
-| `length` | パスワードの長さ（8〜72） | `12` |
-| `mode` | 使う文字の種類（下の表を参照） | `standard` |
-| `-n`, `--no-hash` | ハッシュを出力せず、パスワードだけを出力する | なし |
-| `-h`, `--help` | 使い方を表示して終了する | なし |
+| 引数 | オプション | 意味 | デフォルト |
+|---|---|---|---|
+| `count` | `-c N`, `--count=N` | 生成する個数（1 以上） | `1` |
+| `length` | `-l N`, `--length=N` | パスワードの長さ（8〜72） | `12` |
+| `mode` | `-m MODE`, `--mode=MODE` | 使う文字の種類（下の表を参照） | `standard` |
+| | `-n`, `--no-hash` | ハッシュを出力せず、パスワードだけを出力する | |
+| | `-h`, `--help` | 使い方を表示して終了する | |
+
+count、length、mode は、位置引数とオプションのどちらでも指定できます。たとえば次の3つは同じ意味です。
+
+```sh
+passwdgen 1 12 alnum
+passwdgen -m alnum
+passwdgen --mode=alnum
+```
+
+- 位置引数は常に count、length、mode の順に対応します。同じ値を位置引数とオプションの両方で指定するとエラーになります。
+- ショートオプションは `-m alnum` のようにスペースで区切り、ロングオプションは `--mode=alnum` のように `=` でつなげます。
 
 長さの上限 72 は、bcrypt が扱えるパスワード長の上限に合わせたものです。
 
