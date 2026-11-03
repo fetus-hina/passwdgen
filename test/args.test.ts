@@ -1,9 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import { parseArgs } from '../src/args.ts';
 
-const ok = (count: number, length: number, mode: string, hash = true) => ({
+const DEFAULT = ['md5', 'apr1', 'bcrypt', 'argon2id'];
+
+/** `hash`：true ならデフォルトのハッシュ、false ならハッシュなし、配列なら指定したハッシュ */
+const ok = (count: number, length: number, mode: string, hash: boolean | string[] = true) => ({
   kind: 'run',
-  options: { count, length, mode, hash },
+  options: { count, length, mode, hashes: hash === true ? DEFAULT : hash === false ? [] : hash },
 });
 const ng = (message: string) => ({ kind: 'error', error: `ERROR: ${message}` });
 
@@ -35,7 +38,7 @@ describe('parseArgs：正常系', () => {
     [['-n', '3', '16', 'full', '--no-hash']],
   ])('-n / --no-hash は位置を問わない：%j', (argv) => {
     const result = parseArgs(argv);
-    expect(result.kind === 'run' && result.options.hash).toBe(false);
+    expect(result.kind === 'run' && result.options.hashes).toEqual([]);
     if (argv.length > 1) {
       expect(result).toEqual(ok(3, 16, 'full', false));
     }
@@ -92,6 +95,54 @@ describe('parseArgs：-c / -l / -m と --count= / --length= / --mode=', () => {
   });
 });
 
+describe('parseArgs：--hash', () => {
+  test.each([
+    [['--hash=bcrypt'], ['bcrypt']],
+    [['--hash=apr1,bcrypt'], ['apr1', 'bcrypt']],
+    // 出力順は指定順ではなく、システムの順
+    [['--hash=sha512,argon2id,md5'], ['md5', 'argon2id', 'sha512']],
+    [['--hash=argon2i'], ['argon2i']],
+    // 重複は許容する
+    [['--hash=bcrypt,bcrypt'], ['bcrypt']],
+    [['--hash=all'], ['md5', 'apr1', 'bcrypt', 'argon2i', 'argon2id', 'sha512']],
+    [['--hash=default'], DEFAULT],
+    [['--hash=default,sha512'], ['md5', 'apr1', 'bcrypt', 'argon2id', 'sha512']],
+    [['--hash=all,md5'], ['md5', 'apr1', 'bcrypt', 'argon2i', 'argon2id', 'sha512']],
+  ])('%j', (argv, hashes) => {
+    expect(parseArgs(argv)).toEqual(ok(1, 12, 'standard', hashes));
+  });
+
+  test('ほかの引数と組み合わせられる', () => {
+    expect(parseArgs(['3', '--hash=sha512', '-m', 'alnum', '20'])).toEqual(ok(3, 20, 'alnum', ['sha512']));
+  });
+
+  test.each([
+    [['--hash'], ng('option requires a value: --hash (use --hash=VALUE)')],
+    [['--hash', 'bcrypt'], ng('option requires a value: --hash (use --hash=VALUE)')],
+    [['--hash='], ng('hash is empty')],
+    [['--hash=bcrypt,'], ng('hash has an empty item')],
+    [['--hash=,bcrypt'], ng('hash has an empty item')],
+    [['--hash=bcrypt,,md5'], ng('hash has an empty item')],
+    [['--hash=,'], ng('hash has an empty item')],
+    [['--hash=apr'], ng('unknown hash: apr')],
+    [['--hash=BCRYPT'], ng('unknown hash: BCRYPT')],
+    [['--hash=apr1, bcrypt'], ng('unknown hash:  bcrypt')],
+    [['--hash=toString'], ng('unknown hash: toString')],
+    [['--hash=md5', '--hash=bcrypt'], ng('hash is specified twice')],
+    [['--hash=md5', '-n'], ng('--hash and --no-hash cannot be used together')],
+    [['--no-hash', '--hash=md5'], ng('--hash and --no-hash cannot be used together')],
+    // ショート形式はない
+    [['-H', 'md5'], ng('unknown option: -H')],
+    [['--hashes=md5'], ng('unknown option: --hashes=md5')],
+  ])('%j', (argv, expected) => {
+    expect(parseArgs(argv)).toEqual(expected);
+  });
+
+  test('値の検証は count → length → mode → hash の順', () => {
+    expect(parseArgs(['--hash=bogus', '-m', 'bogus'])).toEqual(ng('mode is invalid'));
+  });
+});
+
 describe('parseArgs：help', () => {
   test.each([
     [['-h']],
@@ -128,7 +179,7 @@ describe('parseArgs：エラー', () => {
     [['1', '12', 'Standard'], ng('mode is invalid')],
     [['1', '12', 'toString'], ng('mode is invalid')],
     [['1', '12', ''], ng('mode is invalid')],
-    [['--hash'], ng('unknown option: --hash')],
+    [['--bogus'], ng('unknown option: --bogus')],
     [['-x'], ng('unknown option: -x')],
     [['-nh'], ng('unknown option: -nh')],
     [['--helpme'], ng('unknown option: --helpme')],

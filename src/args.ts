@@ -1,3 +1,4 @@
+import { DEFAULT_HASHES, parseHashList, type HashId } from './hashes.ts';
 import { DEFAULT_MODE, isMode, type Mode } from './modes.ts';
 
 export const DEFAULT_COUNT = 1;
@@ -10,7 +11,8 @@ export interface Options {
   readonly count: number;
   readonly length: number;
   readonly mode: Mode;
-  readonly hash: boolean;
+  /** 出力するハッシュ（出力順）。空なら出力しない */
+  readonly hashes: readonly HashId[];
 }
 
 export type ParseResult =
@@ -33,6 +35,7 @@ const POSITIONAL_FIELDS: readonly Field[] = ['count', 'length', 'mode'];
 /**
  * コマンドライン引数（`process.argv.slice(2)`）を解析する。
  * 書式：`[options] [count] [length] [mode]`
+ * - `--hash=LIST` で出力するハッシュを選べる。`-n` / `--no-hash` との併用はエラー。
  * - count / length / mode は、位置引数でも `-c N` / `--count=N` などのオプションでも指定できる。
  *   位置引数は常に count → length → mode の順に対応し、同じ値を2回指定するとエラーになる。
  * - `-h` / `--help` があれば、ほかの引数に関係なく（不正な引数があっても）help を返す。
@@ -44,7 +47,8 @@ export function parseArgs(argv: readonly string[]): ParseResult {
 
   const values: Partial<Record<Field, string>> = {};
   const positional: string[] = [];
-  let hash = true;
+  let noHash = false;
+  let hashArg: string | undefined;
 
   const assign = (field: Field, value: string): string | undefined => {
     if (values[field] !== undefined) {
@@ -57,7 +61,19 @@ export function parseArgs(argv: readonly string[]): ParseResult {
   for (let i = 0; i < argv.length; ++i) {
     const arg = argv[i] ?? '';
     if (arg === '-n' || arg === '--no-hash') {
-      hash = false;
+      noHash = true;
+      continue;
+    }
+
+    // --hash はロング形式だけ（ショート形式・位置引数はない）
+    if (arg === '--hash') {
+      return failure('option requires a value: --hash (use --hash=VALUE)');
+    }
+    if (arg.startsWith('--hash=')) {
+      if (hashArg !== undefined) {
+        return failure('hash is specified twice');
+      }
+      hashArg = arg.slice('--hash='.length);
       continue;
     }
 
@@ -93,6 +109,10 @@ export function parseArgs(argv: readonly string[]): ParseResult {
     positional.push(arg);
   }
 
+  if (noHash && hashArg !== undefined) {
+    return failure('--hash and --no-hash cannot be used together');
+  }
+
   if (positional.length > POSITIONAL_FIELDS.length) {
     return failure('too many arguments');
   }
@@ -125,7 +145,16 @@ export function parseArgs(argv: readonly string[]): ParseResult {
     return failure('mode is invalid');
   }
 
-  return { kind: 'run', options: { count, length, mode, hash } };
+  let hashes: readonly HashId[] = noHash ? [] : DEFAULT_HASHES;
+  if (hashArg !== undefined) {
+    const parsedHashes = parseHashList(hashArg);
+    if (!parsedHashes.ok) {
+      return failure(parsedHashes.error);
+    }
+    hashes = parsedHashes.hashes;
+  }
+
+  return { kind: 'run', options: { count, length, mode, hashes } };
 }
 
 /** `-` で始まり、負の数（`-1` など）に見えないものをオプションとみなす */

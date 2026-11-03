@@ -1,9 +1,6 @@
 import { createHash } from 'node:crypto';
 import { cryptBase64From24bit, cryptSalt } from './salt.ts';
 
-// 出力には使っていない。
-// 出力に含めたい場合は src/cli.ts の HASH_LINES に追加する。
-
 const SALT_LENGTH = 16;
 const ROUNDS = 5000;
 

@@ -4,6 +4,8 @@ import { MODES } from '../src/modes.ts';
 import { verifyArgon2 } from '../src/hash/argon2.ts';
 import { bcryptVerify } from '../src/hash/bcrypt.ts';
 import { apr1, md5crypt } from '../src/hash/md5crypt.ts';
+import { sha512crypt } from '../src/hash/sha512crypt.ts';
+import { HASH_ALGORITHMS } from '../src/hashes.ts';
 
 async function capture(argv: string[]) {
   let stdout = '';
@@ -103,8 +105,33 @@ describe('run', () => {
     expect(text).toContain('-l, --length=N');
     expect(text).toContain('-m, --mode=MODE');
     expect(text).toContain('-n, --no-hash');
+    expect(text).toContain('--hash=LIST');
+    for (const { id } of HASH_ALGORITHMS) {
+      expect(text).toMatch(new RegExp(`^  ${id} +\\S`, 'm'));
+    }
     expect(text).toContain('-h, --help');
     expect(text.endsWith('\n')).toBe(true);
+  });
+
+  test('--hash：指定したハッシュだけを、システムの順で出力する', async () => {
+    const { code, stdout } = await capture(['2', '16', '--hash=sha512,md5']);
+    expect(code).toBe(0);
+    const lines = stdout.split('\n');
+    expect(lines).toHaveLength(2 + 2 * 3 + 1);
+    for (const index of [2, 5]) {
+      const password = lines[index] ?? '';
+      const md5 = (lines[index + 1] ?? '').slice(8);
+      const sha = (lines[index + 2] ?? '').slice(8);
+      expect(md5crypt(password, md5.split('$')[2])).toBe(md5);
+      expect(sha512crypt(password, sha.split('$')[2])).toBe(sha);
+    }
+  });
+
+  test('--hash=argon2i：Argon2i を出力する', async () => {
+    const { stdout } = await capture(['1', '16', '--hash=argon2i']);
+    const [, , password = '', line = ''] = stdout.split('\n');
+    expect(line).toMatch(/^ {8}\$argon2i\$v=19\$m=65536,t=4,p=1\$/);
+    expect(await verifyArgon2(password, line.slice(8))).toBe(true);
   });
 
   test('エラー時は stderr に出力し、終了コード 1 を返す', async () => {

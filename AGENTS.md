@@ -78,13 +78,14 @@ Makefile の各ターゲットは npm scripts を呼び出す薄いラッパー�
 │   ├── cli.ts             # run(argv, io)：引数解析・出力の組み立て。テストできるよう I/O を注入する
 │   ├── args.ts            # 引数の解析と検証
 │   ├── modes.ts           # mode の定義と各 mode の文字集合
+│   ├── hashes.ts          # 出力できるハッシュの一覧（識別子・出力順・デフォルト）と --hash の値の解析
 │   ├── generate.ts        # パスワード生成
 │   └── hash/
 │       ├── salt.ts        # crypt 用の salt 生成と base64 エンコード
 │       ├── md5crypt.ts    # MD5-crypt ($1$) と apr1 ($apr1$)。アルゴリズムを共有する
-│       ├── sha512crypt.ts # SHA-512 crypt ($6$)。実装するが出力には使わない
+│       ├── sha512crypt.ts # SHA-512 crypt ($6$)
 │       ├── bcrypt.ts      # bcryptjs のラッパー。prefix を $2y$ にする
-│       └── argon2.ts      # Argon2id / Argon2i。Argon2i は実装するが出力には使わない
+│       └── argon2.ts      # Argon2id / Argon2i
 ├── test/
 │   ├── vectors.ts         # ハッシュのテストベクタ（php / openssl で生成した固定値）
 │   ├── hash.test.ts
@@ -118,11 +119,19 @@ passwdgen -h | --help
 - ロングオプションは `--mode=alnum` の形式だけを受け付けます。`--mode alnum` のようなスペース区切りはエラーにします。
 - 位置引数は、オプションの有無にかかわらず、常に count → length → mode の順に対応します。たとえば `passwdgen -c 2 5` の `5` は count に対応するので、count を2回指定したというエラーになります（length にはずらしません）。
 - 同じ値を2回指定するとエラーにします（位置引数とオプションの組み合わせ、同じオプションの繰り返しのどちらも）。
+- `--hash=LIST` で、出力するハッシュを選べます（下の「ハッシュ」の節を参照）。
+  - ロング形式だけで、ショート形式と位置引数での指定はありません。
+  - LIST はカンマ区切りの識別子です。識別子は小文字だけで、前後の空白は取り除きません。
+  - 出力順は、指定した順ではなく常にシステムの順（`src/hashes.ts` の `HASH_ALGORITHMS` の順）です。`--hash` は出力するかどうかのフラグとしてだけ働きます。
+  - 同じ識別子の重複は許容します（結果は変わりません）。
+  - 値が空（`--hash=`）、空の要素（`md5,`、`,md5`、`md5,,apr1`）、不明な識別子はエラーです。
+  - `--hash` 自体を2回指定すること、`-n` / `--no-hash` と併用することはエラーです。
+  - 指定しない場合は、デフォルトのハッシュを出力します（今までと同じ挙動）。
 
 - 数値は `/^[0-9]+$/` に一致する10進表記だけを受け付けます。`+5`、前後の空白、`-1` などは不正です。`05` のような先頭ゼロは受け付けます。
 - `count` が `0` の場合はエラーにします。
 - `-n` / `--no-hash` は位置を問わず受け付けます（`-n` は `--no-hash` の短縮形）。
-- `-h` / `--help` があれば、ほかの引数に関係なく（不正な引数があっても）使い方を stdout に出力し、終了コード 0 で終了します。使い方は英語で、`src/cli.ts` の `helpText()` が生成します。mode の説明は `src/modes.ts` の `description` から作ります。
+- `-h` / `--help` があれば、ほかの引数に関係なく（不正な引数があっても）使い方を stdout に出力し、終了コード 0 で終了します。使い方は英語で、`src/cli.ts` の `helpText()` が生成します。mode の説明は `src/modes.ts` の `description` から、ハッシュの一覧は `src/hashes.ts` の `HASH_ALGORITHMS` から作ります。
 - `-` で始まり2文字目が数字でない引数のうち、上記のオプション以外のものは不明なオプションとしてエラーにします。`-1` のような負の数は位置引数として扱い、値が不正というエラーになります。
 - オプションの書式の誤り（不明なオプション、値がない、2回指定）と位置引数の数は、値の検証より先にチェックします。
 - 4個目以降の位置引数もエラーにします。
@@ -130,7 +139,7 @@ passwdgen -h | --help
 ### エラー
 
 - エラーメッセージは **stderr** に出力し、終了コード 1 で終了します。
-- 引数は count → length → mode の順に検証し、最初に見つかったエラーだけを報告します。
+- 引数の値は count → length → mode → hash の順に検証し、最初に見つかったエラーだけを報告します。
 - `passwdgen 10 | head -1` のようにパイプの読み手が先に終了した場合（stdout への書き込みが EPIPE）は、その時点で生成を止め、何も出力せず終了コード 0 で終了します。そのため `run()` は出力のたびに書き込みの完了を await します（`Io` の各関数は Promise を返します）。
 - 予期しない実行時エラー（EPIPE 以外の書き込みエラーなど）の場合は、エラー内容を stderr に出力し、終了コード 1 で終了します。
 
@@ -145,7 +154,11 @@ passwdgen -h | --help
 | 位置引数が多すぎる | `ERROR: too many arguments` |
 | ショートオプションの値がない | `ERROR: option requires a value: -c` |
 | ロングオプションに `=` がない | `ERROR: option requires a value: --count (use --count=VALUE)` |
-| 同じ値を2回指定した | `ERROR: count is specified twice`（length / mode も同様） |
+| 同じ値を2回指定した | `ERROR: count is specified twice`（length / mode / hash も同様） |
+| `--hash=` の値が空 | `ERROR: hash is empty` |
+| `--hash=` に空の要素がある | `ERROR: hash has an empty item` |
+| `--hash=` に不明な識別子がある | `ERROR: unknown hash: <name>` |
+| `--hash` と `--no-hash` を併用した | `ERROR: --hash and --no-hash cannot be used together` |
 
 ### mode と文字集合
 
@@ -189,22 +202,31 @@ Generate 2 password(s), length=12, mode=standard
 ```
 
 - ハッシュ行の先頭にはスペースが8個付きます。
+- 上の例は `--hash` を指定しない（デフォルトの）場合です。`--hash` を指定した場合は、指定したハッシュの行だけを出力します。
 - `-n` / `--no-hash` を付けた場合は、パスワードの行だけを出力します。ヘッダ行と空行は出力します。
-- ハッシュの出力順は MD5-crypt、apr1、bcrypt、Argon2id の順です。
 
 ### ハッシュ
 
-| 種類 | 出力に含めるか | 詳細 |
-|---|---|---|
-| MD5-crypt `$1$` | 含める | salt は `./0-9A-Za-z` から8文字 |
-| apr1 `$apr1$` | 含める | salt は `./0-9A-Za-z` から8文字。行の先頭に `USERNAME:` を付ける（htpasswd 形式） |
-| bcrypt | 含める | cost 12、prefix は `$2y$`（bcryptjs は `$2b$` を出力するので置き換える） |
-| Argon2id | 含める | `m=65536, t=4, p=1`、salt 16 バイト、ハッシュ長 32 バイト。PHP の `password_hash` と同じ encoded 形式 |
-| Argon2i | **含めない** | パラメータは Argon2id と同じ。関数として実装し、テストする |
-| SHA-512 crypt `$6$` | **含めない** | salt は `./0-9A-Za-z` から16文字、rounds はデフォルトの 5000。関数として実装し、テストする |
+表の順が出力順です。
 
+| 識別子 | 種類 | デフォルトで出力 | 詳細 |
+|---|---|---|---|
+| `md5` | MD5-crypt `$1$` | する | salt は `./0-9A-Za-z` から8文字 |
+| `apr1` | apr1 `$apr1$` | する | salt は `./0-9A-Za-z` から8文字。行の先頭に `USERNAME:` を付ける（htpasswd 形式） |
+| `bcrypt` | bcrypt | する | cost 12、prefix は `$2y$`（bcryptjs は `$2b$` を出力するので置き換える） |
+| `argon2i` | Argon2i | **しない** | パラメータは Argon2id と同じ |
+| `argon2id` | Argon2id | する | `m=65536, t=4, p=1`、salt 16 バイト、ハッシュ長 32 バイト。PHP の `password_hash` と同じ encoded 形式 |
+| `sha512` | SHA-512 crypt `$6$` | **しない** | salt は `./0-9A-Za-z` から16文字、rounds はデフォルトの 5000 |
+
+`--hash=` には、個々の識別子に加えて、次のグループ名も指定できます。ほかの識別子と組み合わせられます（例：`--hash=default,sha512`）。
+
+| グループ | 内容 |
+|---|---|
+| `all` | すべてのハッシュ |
+| `default` | デフォルトで出力するハッシュ |
+
+- 識別子、出力順、デフォルトかどうか、`--help` に表示する説明は、`src/hashes.ts` の `HASH_ALGORITHMS` にまとめています。ハッシュを追加・変更するときはここを編集してください。
 - ハッシュ関数には salt を引数で渡せるようにしてください。テストで固定値を使うためです。省略した場合はランダムに生成します。
-- 出力に含めない関数は、コード中に「出力に含めたい場合の差し替え箇所」が分かるようにしておいてください。
 
 ## テスト方針
 

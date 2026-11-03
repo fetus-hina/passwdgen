@@ -27,8 +27,6 @@ export async function argon2idHash(password: string, salt?: Uint8Array): Promise
 
 /**
  * Argon2i でハッシュする。
- * 出力には使っていない。
- * 出力に含めたい場合は src/cli.ts の HASH_LINES に追加する。
  */
 export async function argon2iHash(password: string, salt?: Uint8Array): Promise<string> {
   return argon2i(options(password, salt));
