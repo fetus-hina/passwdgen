@@ -75,6 +75,7 @@ Makefile の各ターゲットは npm scripts を呼び出す薄いラッパー�
 │   ├── modes.ts           # mode の定義と各 mode の文字集合
 │   ├── generate.ts        # パスワード生成
 │   └── hash/
+│       ├── salt.ts        # crypt 用の salt 生成と base64 エンコード
 │       ├── md5crypt.ts    # MD5-crypt ($1$) と apr1 ($apr1$)。アルゴリズムを共有する
 │       ├── sha512crypt.ts # SHA-512 crypt ($6$)。実装するが出力には使わない
 │       ├── bcrypt.ts      # bcryptjs のラッパー。prefix を $2y$ にする

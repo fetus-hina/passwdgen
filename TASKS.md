@@ -14,7 +14,7 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 ## 現在の状態
 
 - 最終更新：2026-11-03
-- 現在のフェーズ：フェーズ 2 まで完了。次はフェーズ 3 です。
+- 現在のフェーズ：フェーズ 3 まで完了。次はフェーズ 4 です。
 - 環境：Node.js v24.21.0、php、openssl が利用可能（2026-11-03 に確認）
 
 ---
@@ -42,7 +42,7 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 - [x] 1-4. ビルドスクリプトを作る
   - esbuild：`--bundle --platform=node --target=node24 --format=cjs`、shebang `#!/usr/bin/env node` は banner で付ける、出力先は `bin/passwdgen`
   - ビルド後に `chmod +x bin/passwdgen` を実行する
-  - バンドルする依存パッケージ（bcryptjs、hash-wasm）のライセンス表記が `bin/passwdgen` に残るようにする（`legalComments: 'eof'` を設定済み。依存を実際に import した時点で、末尾に表記が出ることを 3-3 / 3-4 で確認する）
+  - バンドルする依存パッケージ（bcryptjs、hash-wasm）のライセンス表記が `bin/passwdgen` に残るようにする（`legalComments: 'eof'` を設定済み。依存を実際に import した時点で、末尾に表記が出ることを 5-3 で確認する）
   - 完了条件：`npm run build` で `bin/passwdgen` ができ、`./bin/passwdgen` で実行できる
 - [x] 1-5. `Makefile` を作る
   - `all`（typecheck → build）、`test`、`clean`。すべて `.PHONY` にする
@@ -68,15 +68,15 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 
 各タスクは、テストを先に書き、そのテストが通る実装を書く順で進めます。
 
-- [ ] 3-1. `src/hash/md5crypt.ts`：MD5-crypt と apr1 を実装する。magic 文字列（`$1$` / `$apr1$`）だけが違う共通の関数として書く
+- [x] 3-1. `src/hash/md5crypt.ts`：MD5-crypt と apr1 を実装する。magic 文字列（`$1$` / `$apr1$`）だけが違う共通の関数として書く
   - 完了条件：2-1 と 2-2 のテストベクタすべてと一致する
-- [ ] 3-2. `src/hash/sha512crypt.ts`：SHA-512 crypt を実装する（出力には使わない）
+- [x] 3-2. `src/hash/sha512crypt.ts`：SHA-512 crypt を実装する（出力には使わない）
   - 完了条件：2-3 のテストベクタすべてと一致する
-- [ ] 3-3. `src/hash/bcrypt.ts`：bcryptjs をラップする。cost 12、prefix を `$2y$` にする
+- [x] 3-3. `src/hash/bcrypt.ts`：bcryptjs をラップする。cost 12、prefix を `$2y$` にする
   - 完了条件：出力が `$2y$12$` で始まり、検証できる。php で作ったハッシュも検証できる
-- [ ] 3-4. `src/hash/argon2.ts`：hash-wasm を使って Argon2id と Argon2i を実装する（`m=65536, t=4, p=1`、salt 16 バイト、ハッシュ長 32 バイト）
+- [x] 3-4. `src/hash/argon2.ts`：hash-wasm を使って Argon2id と Argon2i を実装する（`m=65536, t=4, p=1`、salt 16 バイト、ハッシュ長 32 バイト）
   - 完了条件：出力が `$argon2id$v=19$m=65536,t=4,p=1$` で始まり、検証できる。php で作ったハッシュも検証できる
-- [ ] 3-5. salt 生成：`./0-9A-Za-z` から指定した文字数を `crypto.randomInt` で選ぶ関数を作る
+- [x] 3-5. salt 生成：`./0-9A-Za-z` から指定した文字数を `crypto.randomInt` で選ぶ関数を作る
   - 完了条件：文字数と文字の種類をテストで確認する
 
 ## フェーズ 4：パスワード生成
@@ -93,6 +93,7 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 - [ ] 5-2. `src/cli.ts`：`run(argv, io)` を実装する。ヘッダ、空行、パスワード、ハッシュ行（8個のスペース）を出力する
   - 完了条件：出力フォーマットのテスト（ハッシュあり / `--no-hash`）、エラー時に stderr に出力して終了コード 1 になることのテスト
 - [ ] 5-3. `src/main.ts`：`process.argv.slice(2)` を `run()` に渡し、`process.exitCode` を設定する
+  - ビルドした `bin/passwdgen` の末尾に bcryptjs と hash-wasm のライセンス表記が残っていることを確認する（1-4 の残り）
 - [ ] 5-4. スモークテスト：ビルドした `bin/passwdgen` を `child_process` で起動し、終了コードと出力の形を確認する
   - ビルドされていないときは skip するか、テストの前にビルドする
 
@@ -117,3 +118,8 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
   - tsconfig は `module: nodenext` + `allowImportingTsExtensions`。**相対 import には `.ts` 拡張子を付ける**こと。
   - npm 11 は install script をデフォルトで実行しないので、`npm ci` で esbuild の postinstall に関する警告が出る。`@esbuild/linux-x64` が optionalDependencies として入るため、esbuild は問題なく動く。
 - 2026-11-03：フェーズ 2 完了。テストベクタは5件（8、16、17、72文字、記号のみに近いもの）。MD5-crypt / apr1 / SHA-512 crypt の PHP と openssl の結果はすべて一致した。生成に使ったスクリプトは passwdgen.php に依存するため、リポジトリには入れていない（生成方法は `test/vectors.ts` のコメントに記載）。
+- 2026-11-03：フェーズ 3 完了。
+  - salt の生成と crypt 用 base64 は `src/hash/salt.ts` にまとめた。
+  - 公開関数：`md5crypt` / `apr1` / `sha512crypt`（同期）、`bcryptHash` / `bcryptVerify`、`argon2idHash` / `argon2iHash` / `verifyArgon2`（非同期）。
+  - bcrypt は 72 バイトより後ろを無視するので、不一致を確認するテストではパスワードの**先頭**を変える。
+  - `test/hash.test.ts` の実行には約 10 秒かかる（Argon2 と bcrypt cost 12 のため）。
