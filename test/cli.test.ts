@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { run } from '../src/cli.ts';
+import { helpText, run } from '../src/cli.ts';
+import { MODES } from '../src/modes.ts';
 import { verifyArgon2 } from '../src/hash/argon2.ts';
 import { bcryptVerify } from '../src/hash/bcrypt.ts';
 import { apr1, md5crypt } from '../src/hash/md5crypt.ts';
@@ -31,6 +32,12 @@ describe('run', () => {
       expect(line).toMatch(/^[0-9]{10}$/);
     }
     expect(lines[5]).toBe('');
+  });
+
+  test('-n は --no-hash と同じ', async () => {
+    const { code, stdout } = await capture(['2', '10', 'number', '-n']);
+    expect(code).toBe(0);
+    expect(stdout).toMatch(/^Generate 2 password\(s\), length=10, mode=number\n\n[0-9]{10}\n[0-9]{10}\n$/);
   });
 
   test('引数なしのデフォルト値をヘッダに表示する', async () => {
@@ -70,6 +77,25 @@ describe('run', () => {
 
     expect(argon).toMatch(/^\$argon2id\$v=19\$m=65536,t=4,p=1\$/);
     expect(await verifyArgon2(password, argon)).toBe(true);
+  });
+
+  test.each([['-h'], ['--help']])('%s：使い方を stdout に出力し、終了コード 0 を返す', async (flag) => {
+    const { code, stdout, stderr } = await capture(['3', flag]);
+    expect(code).toBe(0);
+    expect(stderr).toBe('');
+    expect(stdout).toBe(helpText());
+  });
+
+  test('使い方には書式、すべての mode、オプションが載っている', () => {
+    const text = helpText();
+    expect(text).toMatch(/^Usage: passwdgen \[count\] \[length\] \[mode\] \[-n \| --no-hash\]\n/);
+    expect(text).toContain('8-72 (default: 12)');
+    for (const mode of Object.keys(MODES)) {
+      expect(text).toMatch(new RegExp(`^  ${mode} +\\S`, 'm'));
+    }
+    expect(text).toContain('-n, --no-hash');
+    expect(text).toContain('-h, --help');
+    expect(text.endsWith('\n')).toBe(true);
   });
 
   test('エラー時は stderr に出力し、終了コード 1 を返す', async () => {

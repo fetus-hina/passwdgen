@@ -31,6 +31,13 @@ describe('bin/passwdgen', () => {
     expect(result.stdout).toMatch(/^Generate 2 password\(s\), length=20, mode=alnum\n\n[0-9A-Za-z]{20}\n[0-9A-Za-z]{20}\n$/);
   });
 
+  test('--help で使い方を表示する', () => {
+    const result = exec(`./${BIN}`, ['--help']);
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe('');
+    expect(result.stdout).toMatch(/^Usage: passwdgen /);
+  });
+
   test('エラー時は終了コード 1', () => {
     const result = exec(`./${BIN}`, ['1', '12', 'nosuchmode']);
     expect(result.status).toBe(1);

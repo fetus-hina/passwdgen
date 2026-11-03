@@ -21,7 +21,8 @@ make
 ## 使い方
 
 ```
-passwdgen [count] [length] [mode] [--no-hash]
+passwdgen [count] [length] [mode] [-n | --no-hash]
+passwdgen -h | --help
 ```
 
 | 引数 | 意味 | デフォルト |
@@ -29,7 +30,8 @@ passwdgen [count] [length] [mode] [--no-hash]
 | `count` | 生成する個数（1 以上） | `1` |
 | `length` | パスワードの長さ（8〜72） | `12` |
 | `mode` | 使う文字の種類（下の表を参照） | `standard` |
-| `--no-hash` | ハッシュを出力せず、パスワードだけを出力する | なし |
+| `-n`, `--no-hash` | ハッシュを出力せず、パスワードだけを出力する | なし |
+| `-h`, `--help` | 使い方を表示して終了する | なし |
 
 長さの上限 72 は、bcrypt が扱えるパスワード長の上限に合わせたものです。
 
@@ -69,7 +71,7 @@ Xk7%hR2m@bQe9wTz
 3. bcrypt（cost 12、`$2y$`）
 4. Argon2id（`m=65536, t=4, p=1`）
 
-Argon2id と bcrypt の計算には時間がかかるので、`count` が大きいときはハッシュの出力に数秒かかります。パスワードだけ必要なら `--no-hash` を付けてください。
+Argon2id と bcrypt の計算には時間がかかるので、`count` が大きいときはハッシュの出力に数秒かかります。パスワードだけ必要なら `-n`（`--no-hash`）を付けてください。
 
 ### 終了コード
 

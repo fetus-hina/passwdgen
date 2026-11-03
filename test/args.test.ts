@@ -2,10 +2,10 @@ import { describe, expect, test } from 'vitest';
 import { parseArgs } from '../src/args.ts';
 
 const ok = (count: number, length: number, mode: string, hash = true) => ({
-  ok: true,
+  kind: 'run',
   options: { count, length, mode, hash },
 });
-const ng = (message: string) => ({ ok: false, error: `ERROR: ${message}` });
+const ng = (message: string) => ({ kind: 'error', error: `ERROR: ${message}` });
 
 describe('parseArgs：正常系', () => {
   test.each([
@@ -28,12 +28,31 @@ describe('parseArgs：正常系', () => {
     [['3', '--no-hash', '16', 'full']],
     [['3', '16', '--no-hash', 'full']],
     [['3', '16', 'full', '--no-hash']],
-  ])('--no-hash は位置を問わない：%j', (argv) => {
+    [['-n']],
+    [['-n', '3', '16', 'full']],
+    [['3', '-n', '16', 'full']],
+    [['3', '16', 'full', '-n']],
+    [['-n', '3', '16', 'full', '--no-hash']],
+  ])('-n / --no-hash は位置を問わない：%j', (argv) => {
     const result = parseArgs(argv);
-    expect(result.ok && result.options.hash).toBe(false);
+    expect(result.kind === 'run' && result.options.hash).toBe(false);
     if (argv.length > 1) {
       expect(result).toEqual(ok(3, 16, 'full', false));
     }
+  });
+});
+
+describe('parseArgs：help', () => {
+  test.each([
+    [['-h']],
+    [['--help']],
+    [['3', '16', 'full', '--help']],
+    [['--no-hash', '-h']],
+    // 不正な引数があっても help を優先する
+    [['0', '7', 'bogus', '--unknown', '-h']],
+    [['1', '12', 'standard', 'extra', '--help']],
+  ])('%j', (argv) => {
+    expect(parseArgs(argv)).toEqual({ kind: 'help' });
   });
 });
 
@@ -58,7 +77,9 @@ describe('parseArgs：エラー', () => {
     [['1', '12', 'toString'], ng('mode is invalid')],
     [['1', '12', ''], ng('mode is invalid')],
     [['--hash'], ng('unknown option: --hash')],
-    [['-h'], ng('unknown option: -h')],
+    [['-x'], ng('unknown option: -x')],
+    [['-nh'], ng('unknown option: -nh')],
+    [['--helpme'], ng('unknown option: --helpme')],
     [['1', '12', 'standard', 'extra'], ng('too many arguments')],
   ])('%j', (argv, expected) => {
     expect(parseArgs(argv)).toEqual(expected);

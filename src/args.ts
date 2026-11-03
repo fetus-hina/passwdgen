@@ -14,19 +14,25 @@ export interface Options {
 }
 
 export type ParseResult =
-  | { readonly ok: true; readonly options: Options }
-  | { readonly ok: false; readonly error: string };
+  | { readonly kind: 'run'; readonly options: Options }
+  | { readonly kind: 'help' }
+  | { readonly kind: 'error'; readonly error: string };
 
 /**
  * コマンドライン引数（`process.argv.slice(2)`）を解析する。
- * 書式：`[count] [length] [mode] [--no-hash]`
+ * 書式：`[count] [length] [mode] [-n | --no-hash]`、`-h` / `--help`
+ * `-h` / `--help` があれば、ほかの引数に関係なく（不正な引数があっても）help を返す。
  */
 export function parseArgs(argv: readonly string[]): ParseResult {
+  if (argv.some((arg) => arg === '-h' || arg === '--help')) {
+    return { kind: 'help' };
+  }
+
   const positional: string[] = [];
   let hash = true;
 
   for (const arg of argv) {
-    if (arg === '--no-hash') {
+    if (arg === '-n' || arg === '--no-hash') {
       hash = false;
     } else if (isOptionLike(arg)) {
       return failure(`unknown option: ${arg}`);
@@ -61,7 +67,7 @@ export function parseArgs(argv: readonly string[]): ParseResult {
     return failure('mode is invalid');
   }
 
-  return { ok: true, options: { count, length, mode, hash } };
+  return { kind: 'run', options: { count, length, mode, hash } };
 }
 
 /** `-` で始まり、負の数（`-1` など）に見えないものをオプションとみなす */
@@ -79,5 +85,5 @@ function parseInteger(value: string): number | undefined {
 }
 
 function failure(message: string): ParseResult {
-  return { ok: false, error: `ERROR: ${message}` };
+  return { kind: 'error', error: `ERROR: ${message}` };
 }
