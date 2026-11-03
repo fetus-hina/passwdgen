@@ -71,6 +71,8 @@ Makefile の各ターゲットは npm scripts を呼び出す薄いラッパー�
 ├── scripts/
 │   └── build.ts           # esbuild によるビルド。node scripts/build.ts で直接実行する
 ├── .gitignore             # bin/, node_modules/
+├── .github/workflows/
+│   └── ci.yml             # GitHub Actions：npm ci → make → make test（Node.js 24 と 26）
 ├── src/
 │   ├── main.ts            # エントリポイント。process.argv を run() に渡し、終了コードを設定する
 │   ├── cli.ts             # run(argv, io)：引数解析・出力の組み立て。テストできるよう I/O を注入する
@@ -213,4 +215,5 @@ Generate 2 password(s), length=12, mode=standard
 - 仕様を変える必要が出てきたら、実装する前にユーザーに確認してください。確認して決まったことは、この AGENTS.md の仕様に反映します。
 - **git**：コミット、push、ブランチ作成は、ユーザーから指示があったときだけ行います。
 - `bin/` と `node_modules/` はコミットしません。
+- GitHub Actions のアクションは、タグではなくコミット SHA で固定します（`# vX.Y.Z` のコメントを付ける）。
 - 依存パッケージを追加するときは、上の技術スタックの表にあるもの以外はユーザーに確認してください。
