@@ -75,8 +75,11 @@ Makefile の各ターゲットは npm scripts を呼び出す薄いラッパー�
 │   └── ci.yml             # GitHub Actions：npm ci → make → make test（Node.js 24 と 26）
 ├── src/
 │   ├── main.ts            # エントリポイント。process.argv を run() に渡し、終了コードを設定する
-│   ├── cli.ts             # run(argv, io)：引数解析・出力の組み立て。テストできるよう I/O を注入する
-│   ├── args.ts            # 引数の解析と検証
+│   ├── cli.ts             # run(argv, io)：引数を解析し、パスワードとハッシュを生成して出力する。テストできるよう I/O を注入する
+│   ├── args.ts            # 引数の解析（書式の解析 collectArgs → 値の検証 resolveOptions）。値を取るオプションは VALUE_OPTIONS に定義する
+│   ├── help.ts            # -h / --help で表示する使い方（helpText）
+│   ├── formats.ts         # 出力形式（plain / json）ごとの書き出し方（WRITERS）
+│   ├── result.ts          # 成功か失敗かを表す Result 型（引数の検証などで使う）
 │   ├── modes.ts           # mode の定義と各 mode の文字集合
 │   ├── hashes.ts          # 出力できるハッシュの一覧（識別子・出力順・デフォルト）と --hash の値の解析
 │   ├── generate.ts        # パスワード生成
@@ -132,7 +135,7 @@ passwdgen -h | --help
 - 数値は `/^[0-9]+$/` に一致する10進表記だけを受け付けます。`+5`、前後の空白、`-1` などは不正です。`05` のような先頭ゼロは受け付けます。
 - `count` が `0` の場合はエラーにします。
 - `-n` / `--no-hash` は位置を問わず受け付けます（`-n` は `--no-hash` の短縮形）。
-- `-h` / `--help` があれば、ほかの引数に関係なく（不正な引数があっても）使い方を stdout に出力し、終了コード 0 で終了します。使い方は英語で、`src/cli.ts` の `helpText()` が生成します。mode の説明は `src/modes.ts` の `description` から、ハッシュの一覧は `src/hashes.ts` の `HASH_ALGORITHMS` から作ります。
+- `-h` / `--help` があれば、ほかの引数に関係なく（不正な引数があっても）使い方を stdout に出力し、終了コード 0 で終了します。使い方は英語で、`src/help.ts` の `helpText()` が生成します。mode の説明は `src/modes.ts` の `description` から、ハッシュの一覧は `src/hashes.ts` の `HASH_ALGORITHMS` から作ります。
 - `-` で始まり2文字目が数字でない引数のうち、上記のオプション以外のものは不明なオプションとしてエラーにします。`-1` のような負の数は位置引数として扱い、値が不正というエラーになります。
 - オプションの書式の誤り（不明なオプション、値がない、2回指定）と位置引数の数は、値の検証より先にチェックします。
 - 4個目以降の位置引数もエラーにします。
@@ -239,7 +242,10 @@ Generate 2 password(s), length=12, mode=standard
   - パイプが途中で閉じられた場合（EPIPE。終了コード 0）
   - 生成やハッシュの計算中に予期しないエラーが起きた場合（エラーを stderr に出力し、終了コード 1）
   - JSON を使う側は、終了コードを確認してください。全件をまとめて出力する方式には変えません（大量に生成するときのメモリ使用量と、パイプが閉じたらすぐに止まる挙動を保つため）。
-- 出力形式ごとの書き出し方は、`src/cli.ts` の `WRITERS`（`Record<Format, Writer>`）にまとめています。形式を追加したらここにも追加します（漏れると型エラーになります）。
+- 出力形式ごとの書き出し方は、`src/formats.ts` の `WRITERS` にまとめています。`Format` 型と形式の一覧（`FORMATS`）は `WRITERS` のキーから作るので、`WRITERS` に書き出し方を足せば `-f` / `--format` で受け付けるようになります。ただし、形式を追加するときは次も手で更新してください。
+  - `src/help.ts` の、形式ごとの説明（今は json の説明だけ書いてある）
+  - この AGENTS.md（オプションの表の format の行、出力フォーマットの節）と README.md
+  - テスト（`test/args.test.ts`、`test/cli.test.ts`）
 
 ### ハッシュ
 

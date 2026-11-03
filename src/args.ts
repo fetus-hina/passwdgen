@@ -1,19 +1,13 @@
+import { DEFAULT_FORMAT, isFormat, type Format } from './formats.ts';
 import { DEFAULT_HASHES, parseHashList, type HashId } from './hashes.ts';
 import { DEFAULT_MODE, isMode, type Mode } from './modes.ts';
+import { failure, success, type Result } from './result.ts';
 
 export const DEFAULT_COUNT = 1;
 export const DEFAULT_LENGTH = 12;
 export const MIN_LENGTH = 8;
 /** bcrypt が扱えるパスワード長の上限に合わせる */
 export const MAX_LENGTH = 72;
-
-export const FORMATS = ['plain', 'json'] as const;
-export type Format = (typeof FORMATS)[number];
-export const DEFAULT_FORMAT: Format = 'plain';
-
-function isFormat(value: string): value is Format {
-  return (FORMATS as readonly string[]).includes(value);
-}
 
 export interface Options {
   readonly count: number;
@@ -29,36 +23,60 @@ export type ParseResult =
   | { readonly kind: 'help' }
   | { readonly kind: 'error'; readonly error: string };
 
-type Field = 'count' | 'length' | 'mode' | 'format';
+/** 値を取るオプションと位置引数で指定する値 */
+type Field = 'count' | 'length' | 'mode' | 'hash' | 'format';
 
-/** 値を取るオプション。ロング形式は `--name=value`、ショート形式は `-x value`（スペース区切り） */
-const VALUE_OPTIONS: ReadonlyArray<{ readonly field: Field; readonly short: string; readonly long: string }> = [
+/**
+ * 値を取るオプション。ロング形式は `--name=value`、ショート形式は `-x value`（スペース区切り）。
+ * `short` がないものはロング形式だけ。
+ */
+const VALUE_OPTIONS: ReadonlyArray<{ readonly field: Field; readonly short?: string; readonly long: string }> = [
   { field: 'count', short: '-c', long: '--count' },
   { field: 'length', short: '-l', long: '--length' },
   { field: 'mode', short: '-m', long: '--mode' },
+  { field: 'hash', long: '--hash' },
   { field: 'format', short: '-f', long: '--format' },
 ];
 
-/** 位置引数がどの値に対応するか（先頭から順に）。format は位置引数では指定できない */
+/** 位置引数がどの値に対応するか（先頭から順に）。hash と format は位置引数では指定できない */
 const POSITIONAL_FIELDS: readonly Field[] = ['count', 'length', 'mode'];
+
+/** 引数の書式を解析した結果（値はまだ検証していない文字列のまま） */
+interface RawArgs {
+  readonly values: Partial<Record<Field, string>>;
+  readonly noHash: boolean;
+}
 
 /**
  * コマンドライン引数（`process.argv.slice(2)`）を解析する。
  * 書式：`[options] [count] [length] [mode]`
- * - `--hash=LIST` で出力するハッシュを選べる。`-n` / `--no-hash` との併用はエラー。
  * - count / length / mode は、位置引数でも `-c N` / `--count=N` などのオプションでも指定できる。
  *   位置引数は常に count → length → mode の順に対応し、同じ値を2回指定するとエラーになる。
+ * - `--hash=LIST` で出力するハッシュを選べる。`-n` / `--no-hash` との併用はエラー。
  * - `-h` / `--help` があれば、ほかの引数に関係なく（不正な引数があっても）help を返す。
+ *
+ * まず書式の誤り（不明なオプション、値がない、2回指定など）を調べ、次に値を検証する。
  */
 export function parseArgs(argv: readonly string[]): ParseResult {
   if (argv.some((arg) => arg === '-h' || arg === '--help')) {
     return { kind: 'help' };
   }
+  const raw = collectArgs(argv);
+  if (!raw.ok) {
+    return errorResult(raw.error);
+  }
+  const options = resolveOptions(raw.value);
+  if (!options.ok) {
+    return errorResult(options.error);
+  }
+  return { kind: 'run', options: options.value };
+}
 
+/** 引数を、オプションと位置引数に振り分ける。書式の誤りがあればエラーメッセージを返す */
+function collectArgs(argv: readonly string[]): Result<RawArgs> {
   const values: Partial<Record<Field, string>> = {};
   const positional: string[] = [];
   let noHash = false;
-  let hashArg: string | undefined;
 
   const assign = (field: Field, value: string): string | undefined => {
     if (values[field] !== undefined) {
@@ -72,18 +90,6 @@ export function parseArgs(argv: readonly string[]): ParseResult {
     const arg = argv[i] ?? '';
     if (arg === '-n' || arg === '--no-hash') {
       noHash = true;
-      continue;
-    }
-
-    // --hash はロング形式だけ（ショート形式・位置引数はない）
-    if (arg === '--hash') {
-      return failure('option requires a value: --hash (use --hash=VALUE)');
-    }
-    if (arg.startsWith('--hash=')) {
-      if (hashArg !== undefined) {
-        return failure('hash is specified twice');
-      }
-      hashArg = arg.slice('--hash='.length);
       continue;
     }
 
@@ -119,7 +125,7 @@ export function parseArgs(argv: readonly string[]): ParseResult {
     positional.push(arg);
   }
 
-  if (noHash && hashArg !== undefined) {
+  if (noHash && values.hash !== undefined) {
     return failure('--hash and --no-hash cannot be used together');
   }
 
@@ -132,14 +138,18 @@ export function parseArgs(argv: readonly string[]): ParseResult {
       return failure(error);
     }
   }
-  const { count: countArg, length: lengthArg, mode: modeArg, format: formatArg } = values;
 
-  const count = countArg === undefined ? DEFAULT_COUNT : parseInteger(countArg);
+  return success({ values, noHash });
+}
+
+/** 値を count → length → mode → hash → format の順に検証し、デフォルト値を補う。不正なら失敗を返す */
+function resolveOptions({ values, noHash }: RawArgs): Result<Options> {
+  const count = values.count === undefined ? DEFAULT_COUNT : parseInteger(values.count);
   if (count === undefined || count < 1) {
     return failure('count is invalid');
   }
 
-  const length = lengthArg === undefined ? DEFAULT_LENGTH : parseInteger(lengthArg);
+  const length = values.length === undefined ? DEFAULT_LENGTH : parseInteger(values.length);
   if (length === undefined) {
     return failure('length is invalid');
   }
@@ -150,26 +160,26 @@ export function parseArgs(argv: readonly string[]): ParseResult {
     return failure('length too long');
   }
 
-  const mode = modeArg ?? DEFAULT_MODE;
+  const mode = values.mode ?? DEFAULT_MODE;
   if (!isMode(mode)) {
     return failure('mode is invalid');
   }
 
   let hashes: readonly HashId[] = noHash ? [] : DEFAULT_HASHES;
-  if (hashArg !== undefined) {
-    const parsedHashes = parseHashList(hashArg);
-    if (!parsedHashes.ok) {
-      return failure(parsedHashes.error);
+  if (values.hash !== undefined) {
+    const parsed = parseHashList(values.hash);
+    if (!parsed.ok) {
+      return parsed;
     }
-    hashes = parsedHashes.hashes;
+    hashes = parsed.value;
   }
 
-  const format = formatArg ?? DEFAULT_FORMAT;
+  const format = values.format ?? DEFAULT_FORMAT;
   if (!isFormat(format)) {
     return failure('format is invalid');
   }
 
-  return { kind: 'run', options: { count, length, mode, hashes, format } };
+  return success({ count, length, mode, hashes, format });
 }
 
 /** `-` で始まり、負の数（`-1` など）に見えないものをオプションとみなす */
@@ -186,6 +196,6 @@ function parseInteger(value: string): number | undefined {
   return Number.isSafeInteger(n) ? n : undefined;
 }
 
-function failure(message: string): ParseResult {
+function errorResult(message: string): ParseResult {
   return { kind: 'error', error: `ERROR: ${message}` };
 }

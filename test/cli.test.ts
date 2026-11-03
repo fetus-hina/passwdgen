@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { helpText, run } from '../src/cli.ts';
+import { run } from '../src/cli.ts';
+import { helpText } from '../src/help.ts';
 import { MODES } from '../src/modes.ts';
 import { verifyArgon2 } from '../src/hash/argon2.ts';
 import { bcryptVerify } from '../src/hash/bcrypt.ts';

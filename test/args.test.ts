@@ -3,10 +3,15 @@ import { parseArgs } from '../src/args.ts';
 
 const DEFAULT = ['md5', 'apr1', 'bcrypt', 'argon2id'];
 
-/** `hash`：true ならデフォルトのハッシュ、false ならハッシュなし、配列なら指定したハッシュ */
-const ok = (count: number, length: number, mode: string, hash: boolean | string[] = true, format = 'plain') => ({
+/** 解析に成功した結果。hashes と format は省略するとデフォルト値 */
+const ok = (
+  count: number,
+  length: number,
+  mode: string,
+  { hashes = DEFAULT, format = 'plain' }: { hashes?: string[]; format?: string } = {},
+) => ({
   kind: 'run',
-  options: { count, length, mode, hashes: hash === true ? DEFAULT : hash === false ? [] : hash, format },
+  options: { count, length, mode, hashes, format },
 });
 const ng = (message: string) => ({ kind: 'error', error: `ERROR: ${message}` });
 
@@ -40,7 +45,7 @@ describe('parseArgs：正常系', () => {
     const result = parseArgs(argv);
     expect(result.kind === 'run' && result.options.hashes).toEqual([]);
     if (argv.length > 1) {
-      expect(result).toEqual(ok(3, 16, 'full', false));
+      expect(result).toEqual(ok(3, 16, 'full', { hashes: [] }));
     }
   });
 });
@@ -55,7 +60,7 @@ describe('parseArgs：-c / -l / -m と --count= / --length= / --mode=', () => {
     [['--mode=alnum'], ok(1, 12, 'alnum')],
     [['-m', 'alnum', '-l', '20', '-c', '5'], ok(5, 20, 'alnum')],
     [['--mode=alnum', '--length=20', '--count=5'], ok(5, 20, 'alnum')],
-    [['-c', '5', '--length=20', '-m', 'full', '-n'], ok(5, 20, 'full', false)],
+    [['-c', '5', '--length=20', '-m', 'full', '-n'], ok(5, 20, 'full', { hashes: [] })],
     // 位置引数と組み合わせる（位置引数は常に count → length → mode の順）
     [['5', '20', '--mode=alnum'], ok(5, 20, 'alnum')],
     [['--mode=alnum', '5'], ok(5, 12, 'alnum')],
@@ -109,11 +114,11 @@ describe('parseArgs：--hash', () => {
     [['--hash=default,sha512'], ['md5', 'apr1', 'bcrypt', 'argon2id', 'sha512']],
     [['--hash=all,md5'], ['md5', 'apr1', 'bcrypt', 'argon2i', 'argon2id', 'sha512']],
   ])('%j', (argv, hashes) => {
-    expect(parseArgs(argv)).toEqual(ok(1, 12, 'standard', hashes));
+    expect(parseArgs(argv)).toEqual(ok(1, 12, 'standard', { hashes }));
   });
 
   test('ほかの引数と組み合わせられる', () => {
-    expect(parseArgs(['3', '--hash=sha512', '-m', 'alnum', '20'])).toEqual(ok(3, 20, 'alnum', ['sha512']));
+    expect(parseArgs(['3', '--hash=sha512', '-m', 'alnum', '20'])).toEqual(ok(3, 20, 'alnum', { hashes: ['sha512'] }));
   });
 
   test.each([
@@ -145,11 +150,11 @@ describe('parseArgs：--hash', () => {
 
 describe('parseArgs：-f / --format', () => {
   test.each([
-    [['-f', 'plain'], ok(1, 12, 'standard', true, 'plain')],
-    [['-f', 'json'], ok(1, 12, 'standard', true, 'json')],
-    [['--format=json'], ok(1, 12, 'standard', true, 'json')],
-    [['3', '16', 'full', '-f', 'json', '-n'], ok(3, 16, 'full', false, 'json')],
-    [['--format=json', '--hash=md5'], ok(1, 12, 'standard', ['md5'], 'json')],
+    [['-f', 'plain'], ok(1, 12, 'standard', { format: 'plain' })],
+    [['-f', 'json'], ok(1, 12, 'standard', { format: 'json' })],
+    [['--format=json'], ok(1, 12, 'standard', { format: 'json' })],
+    [['3', '16', 'full', '-f', 'json', '-n'], ok(3, 16, 'full', { hashes: [], format: 'json' })],
+    [['--format=json', '--hash=md5'], ok(1, 12, 'standard', { hashes: ['md5'], format: 'json' })],
   ])('%j', (argv, expected) => {
     expect(parseArgs(argv)).toEqual(expected);
   });
