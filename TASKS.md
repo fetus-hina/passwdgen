@@ -14,7 +14,7 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 ## 現在の状態
 
 - 最終更新：2026-11-03
-- 現在のフェーズ：フェーズ 3 まで完了。次はフェーズ 4 です。
+- 現在のフェーズ：フェーズ 4 まで完了。次はフェーズ 5 です。
 - 環境：Node.js v24.21.0、php、openssl が利用可能（2026-11-03 に確認）
 
 ---
@@ -81,9 +81,9 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 
 ## フェーズ 4：パスワード生成
 
-- [ ] 4-1. `src/modes.ts`：mode の一覧と各 mode の文字集合を定義する
+- [x] 4-1. `src/modes.ts`：mode の一覧と各 mode の文字集合を定義する
   - 完了条件：AGENTS.md の mode 表と一致することをテストで確認する（`lower` と `upper` が数字を含むことも確認する）
-- [ ] 4-2. `src/generate.ts`：`crypto.randomInt` で文字集合から選んで生成する。`standard` と `full` は生成条件を満たすまで作り直す
+- [x] 4-2. `src/generate.ts`：`crypto.randomInt` で文字集合から選んで生成する。`standard` と `full` は生成条件を満たすまで作り直す
   - 完了条件：mode ごとに、文字集合の外の文字が出ないこと、長さが指定どおりであること、生成条件を満たすことを、複数回の生成でテストする
 
 ## フェーズ 5：CLI
@@ -123,3 +123,4 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
   - 公開関数：`md5crypt` / `apr1` / `sha512crypt`（同期）、`bcryptHash` / `bcryptVerify`、`argon2idHash` / `argon2iHash` / `verifyArgon2`（非同期）。
   - bcrypt は 72 バイトより後ろを無視するので、不一致を確認するテストではパスワードの**先頭**を変える。
   - `test/hash.test.ts` の実行には約 10 秒かかる（Argon2 と bcrypt cost 12 のため）。
+- 2026-11-03：フェーズ 4 完了。`src/modes.ts` の `MODES`（文字集合と strict フラグ）、`isMode()`、`DEFAULT_MODE` と、`src/generate.ts` の `generate(length, mode)`、`satisfiesStrictRule()` を実装した。
