@@ -5,7 +5,7 @@
 ## 最初に読むもの
 
 1. この `AGENTS.md`：仕様と規約です。
-2. `README.md`：利用者向けの説明です。
+2. `README.md`：利用者向けの説明です。英語版の `README.en.md` もあります。
 
 ## プロジェクト概要
 
@@ -64,6 +64,7 @@ Makefile の各ターゲットは npm scripts を呼び出す薄いラッパー�
 ├── AGENTS.md
 ├── LICENSE
 ├── README.md
+├── README.en.md           # README の英語版
 ├── Makefile
 ├── package.json
 ├── package-lock.json
@@ -244,7 +245,7 @@ Generate 2 password(s), length=12, mode=standard
   - JSON を使う側は、終了コードを確認してください。全件をまとめて出力する方式には変えません（大量に生成するときのメモリ使用量と、パイプが閉じたらすぐに止まる挙動を保つため）。
 - 出力形式ごとの書き出し方は、`src/formats.ts` の `WRITERS` にまとめています。`Format` 型と形式の一覧（`FORMATS`）は `WRITERS` のキーから作るので、`WRITERS` に書き出し方を足せば `-f` / `--format` で受け付けるようになります。ただし、形式を追加するときは次も手で更新してください。
   - `src/help.ts` の、形式ごとの説明（今は json の説明だけ書いてある）
-  - この AGENTS.md（オプションの表の format の行、出力フォーマットの節）と README.md
+  - この AGENTS.md（オプションの表の format の行、出力フォーマットの節）と README.md / README.en.md
   - テスト（`test/args.test.ts`、`test/cli.test.ts`）
 
 ### ハッシュ
@@ -285,6 +286,7 @@ Generate 2 password(s), length=12, mode=standard
 ## 作業規約
 
 - 応答、コメント、ドキュメントは日本語で書きます。識別子は英語です。
+- README は日本語版（`README.md`）と英語版（`README.en.md`）の2つがあります。片方を変更したら、もう片方も同じ内容に更新してください。
 - 仕様を変える必要が出てきたら、実装する前にユーザーに確認してください。確認して決まったことは、この AGENTS.md の仕様に反映します。
 - **git**：コミット、push、ブランチ作成は、ユーザーから指示があったときだけ行います。
 - `bin/` と `node_modules/` はコミットしません。
