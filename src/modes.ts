@@ -26,10 +26,10 @@ export const MODES = {
   alpha: { charset: UPPER + LOWER, strict: false, description: 'letters' },
   number: { charset: DIGITS, strict: false, description: 'digits' },
   lalnum: { charset: DIGITS + LOWER, strict: false, description: 'lowercase letters and digits' },
-  // PHP 版の挙動を維持し、lower は数字を含む（lalnum と同じ）
+  // lower は数字を含む（lalnum と同じ）。意図した仕様なので変えないこと
   lower: { charset: DIGITS + LOWER, strict: false, description: 'same as lalnum' },
   ualnum: { charset: DIGITS + UPPER, strict: false, description: 'uppercase letters and digits' },
-  // PHP 版の挙動を維持し、upper は数字を含む（ualnum と同じ）
+  // upper は数字を含む（ualnum と同じ）。意図した仕様なので変えないこと
   upper: { charset: DIGITS + UPPER, strict: false, description: 'same as ualnum' },
 } as const satisfies Record<string, ModeDefinition>;
 

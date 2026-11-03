@@ -18,7 +18,7 @@ const INDENT = ' '.repeat(8);
 
 /**
  * パスワードの下に出力するハッシュ行（出力順）。
- * 実装済みで出力していないもの（PHP 版でコメントアウトされていたもの）：
+ * 実装済みで出力していないもの：
  *   - Argon2i：      (pw) => argon2iHash(pw)     … src/hash/argon2.ts
  *   - SHA-512 crypt：(pw) => sha512crypt(pw)     … src/hash/sha512crypt.ts
  * 出力したい場合はこの配列に追加する。

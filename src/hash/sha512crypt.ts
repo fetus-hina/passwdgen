@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { cryptBase64From24bit, cryptSalt } from './salt.ts';
 
-// 出力には使っていない（PHP 版でコメントアウトされていた `crypt($passwd, sha512salt())` に相当）。
+// 出力には使っていない。
 // 出力に含めたい場合は src/cli.ts の HASH_LINES に追加する。
 
 const SALT_LENGTH = 16;

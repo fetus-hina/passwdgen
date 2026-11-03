@@ -2,7 +2,7 @@
 //
 // 2026-11-03 に PHP 8.5.12 と OpenSSL 3.5.8 で一度だけ生成した値を埋め込んでいる。
 // - md5crypt:    PHP の crypt(password, "$1$" + salt8 + "$")
-// - apr1:        移植元の passwdgen.php の apr1(password, salt8)（passwdgen.php は移植の完了時に削除した）
+// - apr1:        PHP で書いた apr1 の実装（このツールの旧版。現存しない）
 // - sha512crypt: PHP の crypt(password, "$6$" + salt16 + "$")
 //   上の3つは openssl passwd -1 / -apr1 / -6 -salt <salt> <password> の結果と一致することも確認済み。
 // - bcrypt:      PHP の password_hash(password, PASSWORD_BCRYPT, ["cost" => 12])

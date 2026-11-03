@@ -30,7 +30,7 @@ describe('MODES', () => {
     expect(charset.length).toBe(EXPECTED[mode].size);
   });
 
-  test('lower と upper は数字を含む（PHP 版の挙動を維持）', () => {
+  test('lower と upper は数字を含む', () => {
     expect(MODES.lower.charset).toMatch(/[0-9]/);
     expect(MODES.upper.charset).toMatch(/[0-9]/);
   });

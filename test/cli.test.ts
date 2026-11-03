@@ -45,7 +45,7 @@ describe('run', () => {
     expect(stdout.split('\n')[0]).toBe('Generate 1 password(s), length=12, mode=standard');
   });
 
-  test('ハッシュあり：PHP 版と同じ書式で、各ハッシュがパスワードを検証できる', async () => {
+  test('ハッシュあり：仕様どおりの書式で、各ハッシュがパスワードを検証できる', async () => {
     const { code, stdout, stderr } = await capture(['1', '16']);
     expect(code).toBe(0);
     expect(stderr).toBe('');
