@@ -14,7 +14,7 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 ## 現在の状態
 
 - 最終更新：2026-11-03
-- 現在のフェーズ：フェーズ 1 まで完了。次はフェーズ 2 です。
+- 現在のフェーズ：フェーズ 2 まで完了。次はフェーズ 3 です。
 - 環境：Node.js v24.21.0、php、openssl が利用可能（2026-11-03 に確認）
 
 ---
@@ -54,15 +54,15 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 
 テストベクタは php / openssl で**一度だけ**生成し、テストコードに埋め込みます。テストの実行時にはこれらのコマンドを使いません。
 
-- [ ] 2-1. MD5-crypt（`$1$`）のテストベクタを作る
+- [x] 2-1. MD5-crypt（`$1$`）のテストベクタを作る
   - php の `crypt($pw, '$1$<salt>$')` と `openssl passwd -1 -salt <salt> <pw>` の結果が一致することを確認する
   - 長さが 8、16、17、72 文字のパスワードや記号を含むものなど、数パターン用意する
-- [ ] 2-2. apr1 のテストベクタを作る
+- [x] 2-2. apr1 のテストベクタを作る
   - `passwdgen.php` の `apr1()` と `openssl passwd -apr1 -salt <salt> <pw>` の結果が一致することを確認する
-- [ ] 2-3. SHA-512 crypt（`$6$`）のテストベクタを作る（php の `crypt` と `openssl passwd -6`）
-- [ ] 2-4. bcrypt（`$2y$12$`）のハッシュを php の `password_hash` で数個作る（検証テスト用）
-- [ ] 2-5. Argon2id と Argon2i のハッシュを php の `password_hash` で数個作る（検証テスト用）
-- [ ] 2-6. 生成したテストベクタを `test/vectors.ts` にまとめる（どのコマンドで生成したかをコメントで残す）
+- [x] 2-3. SHA-512 crypt（`$6$`）のテストベクタを作る（php の `crypt` と `openssl passwd -6`）
+- [x] 2-4. bcrypt（`$2y$12$`）のハッシュを php の `password_hash` で数個作る（検証テスト用）
+- [x] 2-5. Argon2id と Argon2i のハッシュを php の `password_hash` で数個作る（検証テスト用）
+- [x] 2-6. 生成したテストベクタを `test/vectors.ts` にまとめる（どのコマンドで生成したかをコメントで残す）
 
 ## フェーズ 3：ハッシュ関数
 
@@ -116,3 +116,4 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
   - ビルドスクリプトは `scripts/build.ts` で、Node 24 の型ストリップ機能を使い `node scripts/build.ts` で直接実行している。
   - tsconfig は `module: nodenext` + `allowImportingTsExtensions`。**相対 import には `.ts` 拡張子を付ける**こと。
   - npm 11 は install script をデフォルトで実行しないので、`npm ci` で esbuild の postinstall に関する警告が出る。`@esbuild/linux-x64` が optionalDependencies として入るため、esbuild は問題なく動く。
+- 2026-11-03：フェーズ 2 完了。テストベクタは5件（8、16、17、72文字、記号のみに近いもの）。MD5-crypt / apr1 / SHA-512 crypt の PHP と openssl の結果はすべて一致した。生成に使ったスクリプトは passwdgen.php に依存するため、リポジトリには入れていない（生成方法は `test/vectors.ts` のコメントに記載）。
