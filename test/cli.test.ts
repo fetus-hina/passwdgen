@@ -8,10 +8,10 @@ async function capture(argv: string[]) {
   let stdout = '';
   let stderr = '';
   const code = await run(argv, {
-    stdout: (text) => {
+    stdout: async (text) => {
       stdout += text;
     },
-    stderr: (text) => {
+    stderr: async (text) => {
       stderr += text;
     },
   });
@@ -77,5 +77,21 @@ describe('run', () => {
     expect(code).toBe(1);
     expect(stdout).toBe('');
     expect(stderr).toBe('ERROR: length too short\n');
+  });
+
+  test('出力に失敗したら、その時点で生成を止めてエラーで reject する', async () => {
+    let writes = 0;
+    const error = Object.assign(new Error('write EPIPE'), { code: 'EPIPE' });
+    const result = run(['1000', '8', 'alnum', '--no-hash'], {
+      stdout: async () => {
+        writes += 1;
+        if (writes >= 3) {
+          throw error;
+        }
+      },
+      stderr: async () => {},
+    });
+    await expect(result).rejects.toBe(error);
+    expect(writes).toBe(3);
   });
 });

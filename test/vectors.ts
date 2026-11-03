@@ -2,13 +2,13 @@
 //
 // 2026-11-03 に PHP 8.5.12 と OpenSSL 3.5.8 で一度だけ生成した値を埋め込んでいる。
 // - md5crypt:    PHP の crypt(password, "$1$" + salt8 + "$")
-// - apr1:        passwdgen.php の apr1(password, salt8)
+// - apr1:        移植元の passwdgen.php の apr1(password, salt8)（passwdgen.php は移植の完了時に削除した）
 // - sha512crypt: PHP の crypt(password, "$6$" + salt16 + "$")
 //   上の3つは openssl passwd -1 / -apr1 / -6 -salt <salt> <password> の結果と一致することも確認済み。
 // - bcrypt:      PHP の password_hash(password, PASSWORD_BCRYPT, ["cost" => 12])
 // - argon2id:    PHP の password_hash(password, PASSWORD_ARGON2ID)（m=65536, t=4, p=1）
 // - argon2i:     PHP の password_hash(password, PASSWORD_ARGON2I)（m=65536, t=4, p=1）
-//   上の3つは salt がランダムなので、一致比較ではなく検証（verify）に使う。
+//   上の3つは、ハッシュ文字列に含まれる salt を取り出して同じハッシュになるかの比較と、検証（verify）の両方に使う。
 
 export interface HashVector {
   readonly password: string;

@@ -38,6 +38,17 @@ describe.each(HASH_VECTORS)('テストベクタ: $password', (v) => {
     expect(sha512crypt(v.password, v.salt16)).toBe(v.sha512crypt);
   });
 
+  test('PHP と同じ salt を使うと、PHP の bcrypt と同じハッシュになる', async () => {
+    const salt = v.bcrypt.slice('$2y$12$'.length, '$2y$12$'.length + 22);
+    expect(await bcryptHash(v.password, salt)).toBe(v.bcrypt);
+  });
+
+  test('PHP と同じ salt を使うと、PHP の Argon2id / Argon2i と同じハッシュになる', async () => {
+    const saltOf = (hash: string) => Buffer.from(hash.split('$')[4] ?? '', 'base64');
+    expect(await argon2idHash(v.password, saltOf(v.argon2id))).toBe(v.argon2id);
+    expect(await argon2iHash(v.password, saltOf(v.argon2i))).toBe(v.argon2i);
+  });
+
   test('PHP の bcrypt ハッシュを検証できる', async () => {
     expect(await bcryptVerify(v.password, v.bcrypt)).toBe(true);
     expect(await bcryptVerify(wrong(v.password), v.bcrypt)).toBe(false);
@@ -63,6 +74,10 @@ describe('salt を省略した場合', () => {
 });
 
 describe('bcryptHash', () => {
+  test('salt が bcrypt の形式でなければエラー', async () => {
+    await expect(bcryptHash('password', 'short')).rejects.toThrow();
+  });
+
   test('$2y$12$ 形式で出力し、検証できる', async () => {
     const hash = await bcryptHash('Xk7%hR2m@bQe9wTz');
     expect(hash).toMatch(/^\$2y\$12\$[./A-Za-z0-9]{53}$/);

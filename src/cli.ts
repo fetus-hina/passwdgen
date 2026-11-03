@@ -4,9 +4,13 @@ import { argon2idHash } from './hash/argon2.ts';
 import { bcryptHash } from './hash/bcrypt.ts';
 import { apr1, md5crypt } from './hash/md5crypt.ts';
 
+/**
+ * 出力先。書き込みが完了したら resolve し、失敗したら reject する Promise を返す。
+ * run() は書き込みのたびに await するので、出力先が閉じられたら（EPIPE など）その時点で生成を止める。
+ */
 export interface Io {
-  readonly stdout: (text: string) => void;
-  readonly stderr: (text: string) => void;
+  readonly stdout: (text: string) => Promise<void>;
+  readonly stderr: (text: string) => Promise<void>;
 }
 
 const INDENT = ' '.repeat(8);
@@ -25,17 +29,17 @@ const HASH_LINES: ReadonlyArray<(password: string) => string | Promise<string>> 
   (pw) => argon2idHash(pw),
 ];
 
-/** CLI の本体。終了コードを返す。 */
+/** CLI の本体。終了コードを返す。出力に失敗した場合は、その書き込みのエラーで reject する。 */
 export async function run(argv: readonly string[], io: Io): Promise<number> {
   const parsed = parseArgs(argv);
   if (!parsed.ok) {
-    io.stderr(`${parsed.error}\n`);
+    await io.stderr(`${parsed.error}\n`);
     return 1;
   }
   const { count, length, mode, hash } = parsed.options;
 
-  io.stdout(`Generate ${count} password(s), length=${length}, mode=${mode}\n`);
-  io.stdout('\n');
+  await io.stdout(`Generate ${count} password(s), length=${length}, mode=${mode}\n`);
+  await io.stdout('\n');
 
   for (let i = 0; i < count; ++i) {
     const password = generate(length, mode);
@@ -45,7 +49,7 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
         block += `${INDENT}${await line(password)}\n`;
       }
     }
-    io.stdout(block);
+    await io.stdout(block);
   }
 
   return 0;
