@@ -99,9 +99,9 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 
 ## フェーズ 6：仕上げ
 
-- [ ] 6-1. PHP 版との比較：同じ引数で `passwdgen.php` と `bin/passwdgen` を実行し、出力の形（行数、各行の書式）が同じことを確認する。PHP 版で生成したパスワードとハッシュを TS 版で検証し、その逆も確認する
+- [x] 6-1. PHP 版との比較：同じ引数で `passwdgen.php` と `bin/passwdgen` を実行し、出力の形（行数、各行の書式）が同じことを確認する。PHP 版で生成したパスワードとハッシュを TS 版で検証し、その逆も確認する
 - [x] 6-2. `bin/passwdgen` をリポジトリの外（`package.json` も `node_modules` もないディレクトリ）にコピーして動くことを確認する（`test/smoke.test.ts` で、上位の `package.json` の type が なし / module / commonjs の3通りを自動テストしている）
-- [ ] 6-3. `make clean && npm ci && make && make test` が通ることを確認する
+- [x] 6-3. `make clean && npm ci && make && make test` が通ることを確認する
 - [ ] 6-4. README.md と AGENTS.md を実装に合わせて更新する（README の「移植作業中」の注意書きを消す、ディレクトリ構成を実際のものに合わせる）
 - [ ] 6-5. `passwdgen.php` を削除する（6-1 が終わってから）。AGENTS.md と README.md から、PHP 版を参照している記述を整理する
 
@@ -129,3 +129,6 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
   - legalComments だけでは bcryptjs（BSD-3-Clause）の表記が残らなかったので、`dependencies` の LICENSE 全文を footer に付けるようにした。
   - `-1` のような負の数はオプションではなく位置引数として扱い、`count is invalid` などのエラーにする。
   - スモークテストは `beforeAll` で `node scripts/build.ts` を実行してからビルド成果物を起動する。
+- 2026-11-03：6-1、6-3 完了。
+  - PHP 版と TS 版の出力の形は一致した。TS 版のハッシュを PHP（`crypt` / `password_verify` / `openssl passwd -apr1`）で、PHP 版のハッシュを TS 版の関数で検証し、すべて一致した。
+  - 比較の途中で、`passwdgen 2 12 | head -1` のようにパイプ先が先に閉じると EPIPE のスタックトレースが出る不具合が見つかった。`src/main.ts` で stdout の EPIPE を捕まえ、静かに終了するよう修正し、スモークテストを追加した。

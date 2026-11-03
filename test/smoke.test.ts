@@ -38,6 +38,13 @@ describe('bin/passwdgen', () => {
     expect(result.stderr).toBe('ERROR: mode is invalid\n');
   });
 
+  test('パイプの読み手が先に終了しても、エラーを出さない', () => {
+    // ヘッダを読んだ時点で head が終了し、その後のパスワード行の書き込みが EPIPE になる
+    const result = spawnSync('sh', ['-c', `./${BIN} 3 12 | head -n 1`], { encoding: 'utf8' });
+    expect(result.stdout).toBe('Generate 3 password(s), length=12, mode=standard\n');
+    expect(result.stderr).toBe('');
+  });
+
   // 拡張子のないファイルは、置いた場所の package.json の "type" で ESM / CJS が決まる。どちらでも動くことを確認する
   test.each(['none', 'module', 'commonjs'])('リポジトリの外にコピーしても動く（package.json の type: %s）', (type) => {
     const dir = join(workDir, type, 'bin');
