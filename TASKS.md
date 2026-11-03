@@ -14,7 +14,7 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 ## 現在の状態
 
 - 最終更新：2026-11-03
-- 現在のフェーズ：フェーズ 4 まで完了。次はフェーズ 5 です。
+- 現在のフェーズ：フェーズ 5 まで完了。次はフェーズ 6 です。
 - 環境：Node.js v24.21.0、php、openssl が利用可能（2026-11-03 に確認）
 
 ---
@@ -42,7 +42,7 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 - [x] 1-4. ビルドスクリプトを作る
   - esbuild：`--bundle --platform=node --target=node24 --format=cjs`、shebang `#!/usr/bin/env node` は banner で付ける、出力先は `bin/passwdgen`
   - ビルド後に `chmod +x bin/passwdgen` を実行する
-  - バンドルする依存パッケージ（bcryptjs、hash-wasm）のライセンス表記が `bin/passwdgen` に残るようにする（`legalComments: 'eof'` を設定済み。依存を実際に import した時点で、末尾に表記が出ることを 5-3 で確認する）
+  - バンドルする依存パッケージ（bcryptjs、hash-wasm）のライセンス表記が `bin/passwdgen` に残るようにする（5-3 で対応済み）
   - 完了条件：`npm run build` で `bin/passwdgen` ができ、`./bin/passwdgen` で実行できる
 - [x] 1-5. `Makefile` を作る
   - `all`（typecheck → build）、`test`、`clean`。すべて `.PHONY` にする
@@ -88,19 +88,19 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
 
 ## フェーズ 5：CLI
 
-- [ ] 5-1. `src/args.ts`：引数の解析と検証を実装する
+- [x] 5-1. `src/args.ts`：引数の解析と検証を実装する
   - 完了条件：AGENTS.md のエラー表のすべての行と、デフォルト値、`--no-hash` の位置を変えた場合をテストする
-- [ ] 5-2. `src/cli.ts`：`run(argv, io)` を実装する。ヘッダ、空行、パスワード、ハッシュ行（8個のスペース）を出力する
+- [x] 5-2. `src/cli.ts`：`run(argv, io)` を実装する。ヘッダ、空行、パスワード、ハッシュ行（8個のスペース）を出力する
   - 完了条件：出力フォーマットのテスト（ハッシュあり / `--no-hash`）、エラー時に stderr に出力して終了コード 1 になることのテスト
-- [ ] 5-3. `src/main.ts`：`process.argv.slice(2)` を `run()` に渡し、`process.exitCode` を設定する
-  - ビルドした `bin/passwdgen` の末尾に bcryptjs と hash-wasm のライセンス表記が残っていることを確認する（1-4 の残り）
-- [ ] 5-4. スモークテスト：ビルドした `bin/passwdgen` を `child_process` で起動し、終了コードと出力の形を確認する
+- [x] 5-3. `src/main.ts`：`process.argv.slice(2)` を `run()` に渡し、`process.exitCode` を設定する
+  - ビルドした `bin/passwdgen` の末尾に bcryptjs と hash-wasm のライセンス表記が残っていることを確認する（1-4 の残り。対応済み）
+- [x] 5-4. スモークテスト：ビルドした `bin/passwdgen` を `child_process` で起動し、終了コードと出力の形を確認する
   - ビルドされていないときは skip するか、テストの前にビルドする
 
 ## フェーズ 6：仕上げ
 
 - [ ] 6-1. PHP 版との比較：同じ引数で `passwdgen.php` と `bin/passwdgen` を実行し、出力の形（行数、各行の書式）が同じことを確認する。PHP 版で生成したパスワードとハッシュを TS 版で検証し、その逆も確認する
-- [ ] 6-2. `bin/passwdgen` をリポジトリの外（`package.json` も `node_modules` もないディレクトリ）にコピーして動くことを確認する
+- [x] 6-2. `bin/passwdgen` をリポジトリの外（`package.json` も `node_modules` もないディレクトリ）にコピーして動くことを確認する（`test/smoke.test.ts` で、上位の `package.json` の type が なし / module / commonjs の3通りを自動テストしている）
 - [ ] 6-3. `make clean && npm ci && make && make test` が通ることを確認する
 - [ ] 6-4. README.md と AGENTS.md を実装に合わせて更新する（README の「移植作業中」の注意書きを消す、ディレクトリ構成を実際のものに合わせる）
 - [ ] 6-5. `passwdgen.php` を削除する（6-1 が終わってから）。AGENTS.md と README.md から、PHP 版を参照している記述を整理する
@@ -124,3 +124,8 @@ PHP 版 `passwdgen.php` を TypeScript に移植する作業のタスク一覧�
   - bcrypt は 72 バイトより後ろを無視するので、不一致を確認するテストではパスワードの**先頭**を変える。
   - `test/hash.test.ts` の実行には約 10 秒かかる（Argon2 と bcrypt cost 12 のため）。
 - 2026-11-03：フェーズ 4 完了。`src/modes.ts` の `MODES`（文字集合と strict フラグ）、`isMode()`、`DEFAULT_MODE` と、`src/generate.ts` の `generate(length, mode)`、`satisfiesStrictRule()` を実装した。
+- 2026-11-03：フェーズ 5 完了。
+  - **ビルド形式を CJS から IIFE に変更した**。リポジトリ内では `package.json` の `"type": "module"` により、拡張子のない `bin/passwdgen` が ESM として読み込まれ、CJS の `require` が使えずに失敗したため。組み込みモジュールは `process.getBuiltinModule()` で読み込む（詳細は AGENTS.md の「ビルド出力の形式」）。
+  - legalComments だけでは bcryptjs（BSD-3-Clause）の表記が残らなかったので、`dependencies` の LICENSE 全文を footer に付けるようにした。
+  - `-1` のような負の数はオプションではなく位置引数として扱い、`count is invalid` などのエラーにする。
+  - スモークテストは `beforeAll` で `node scripts/build.ts` を実行してからビルド成果物を起動する。

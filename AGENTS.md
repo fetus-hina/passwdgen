@@ -36,8 +36,11 @@ PHP 製のパスワードジェネレータ `passwdgen.php` を TypeScript に�
 
 ### ビルド出力の形式
 
-- `bin/passwdgen` は **CommonJS 形式**で出力します（esbuild の `--format=cjs --platform=node --target=node24`）。拡張子のないファイルをどのディレクトリにコピーしても、確実に動かすためです。
-- CJS ではトップレベル `await` が使えないので、エントリポイントは `async function main()` を呼び出す形にします。
+- 拡張子のない `bin/passwdgen` は、置いた場所の上位にある `package.json` の `"type"` によって、ESM としても CJS としても読み込まれます（リポジトリ内では `"type": "module"` のため ESM になります）。どちらでも動くように、次のようにしています。
+  - esbuild の出力形式は、モジュールシステムに依存しない **IIFE**（`format: 'iife'`、`platform: 'node'`、`target: 'node24'`）にする。
+  - Node の組み込みモジュール（`node:crypto` など）は、`scripts/build.ts` のプラグインで `process.getBuiltinModule()` に置き換える。`require()` や `import` 文は出力に残さない。
+- トップレベル `await` は使えないので、エントリポイントは `async function main()` を呼び出す形にします。
+- バンドルする依存パッケージのライセンス全文を、ビルド時に `bin/passwdgen` の末尾にコメントとして付けます（`package.json` の `dependencies` の各パッケージにある LICENSE ファイル）。bcryptjs のように、ソースに `@license` コメントがないパッケージがあるためです。
 - shebang は esbuild の `banner` で付けます。ビルド後に `chmod +x` します。
 - ソースコード自体は ESM の構文（`import` / `export`）で書きます。相対 import には `.ts` 拡張子を付けます（`allowImportingTsExtensions`）。
 
@@ -52,7 +55,7 @@ make clean        # bin/ を削除
 
 Makefile の各ターゲットは npm scripts を呼び出す薄いラッパーにします（`npm run build` / `npm test` など）。`install` ターゲットは作りません。
 
-## ディレクトリ構成（予定）
+## ディレクトリ構成
 
 ```
 .
@@ -64,7 +67,6 @@ Makefile の各ターゲットは npm scripts を呼び出す薄いラッパー�
 ├── package.json
 ├── package-lock.json
 ├── tsconfig.json
-├── vitest.config.ts       # 必要な場合のみ
 ├── scripts/
 │   └── build.ts           # esbuild によるビルド。node scripts/build.ts で直接実行する
 ├── .gitignore             # bin/, node_modules/
@@ -81,7 +83,12 @@ Makefile の各ターゲットは npm scripts を呼び出す薄いラッパー�
 │       ├── bcrypt.ts      # bcryptjs のラッパー。prefix を $2y$ にする
 │       └── argon2.ts      # Argon2id / Argon2i。Argon2i は実装するが出力には使わない
 ├── test/
-│   └── *.test.ts
+│   ├── vectors.ts         # ハッシュのテストベクタ（php / openssl で生成した固定値）
+│   ├── hash.test.ts
+│   ├── generate.test.ts
+│   ├── args.test.ts
+│   ├── cli.test.ts
+│   └── smoke.test.ts      # bin/passwdgen をビルドして実際に起動する
 └── bin/
     └── passwdgen          # ビルド成果物。git にはコミットしない
 ```
@@ -107,7 +114,8 @@ passwdgen [count] [length] [mode] [--no-hash]
 - 数値は `/^[0-9]+$/` に一致する10進表記だけを受け付けます。**【変更】** PHP の `filter_var` とは違い、`+5`、前後の空白、`-1` などは不正です。`05` のような先頭ゼロは、PHP 版では不正でしたが受け付けます。
 - `count` が `0` の場合はエラーにします。**【変更】** PHP 版ではエラーになりませんでした。
 - `--no-hash` は位置を問わず受け付けます。**【変更】** PHP 版ではハードコードされた `$noHash` 定数でした。
-- `-` で始まる引数のうち `--no-hash` 以外のものはエラーにします。
+- `-` で始まり2文字目が数字でない引数のうち、`--no-hash` 以外のものは不明なオプションとしてエラーにします。`-1` のような負の数は位置引数として扱い、値が不正というエラーになります。
+- 不明なオプションと位置引数の数は、値の検証より先にチェックします。
 - 4個目以降の位置引数もエラーにします。
 
 ### エラー

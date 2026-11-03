@@ -1,0 +1,71 @@
+import { describe, expect, test } from 'vitest';
+import { parseArgs } from '../src/args.ts';
+
+const ok = (count: number, length: number, mode: string, hash = true) => ({
+  ok: true,
+  options: { count, length, mode, hash },
+});
+const ng = (message: string) => ({ ok: false, error: `ERROR: ${message}` });
+
+describe('parseArgs：正常系', () => {
+  test.each([
+    [[], ok(1, 12, 'standard')],
+    [['5'], ok(5, 12, 'standard')],
+    [['5', '20'], ok(5, 20, 'standard')],
+    [['5', '20', 'alnum'], ok(5, 20, 'alnum')],
+    [['1', '8'], ok(1, 8, 'standard')],
+    [['1', '72'], ok(1, 72, 'standard')],
+    [['05', '012'], ok(5, 12, 'standard')],
+    [['1', '12', 'standard'], ok(1, 12, 'standard')],
+    [['1', '12', 'lower'], ok(1, 12, 'lower')],
+  ])('%j', (argv, expected) => {
+    expect(parseArgs(argv)).toEqual(expected);
+  });
+
+  test.each([
+    [['--no-hash']],
+    [['--no-hash', '3', '16', 'full']],
+    [['3', '--no-hash', '16', 'full']],
+    [['3', '16', '--no-hash', 'full']],
+    [['3', '16', 'full', '--no-hash']],
+  ])('--no-hash は位置を問わない：%j', (argv) => {
+    const result = parseArgs(argv);
+    expect(result.ok && result.options.hash).toBe(false);
+    if (argv.length > 1) {
+      expect(result).toEqual(ok(3, 16, 'full', false));
+    }
+  });
+});
+
+describe('parseArgs：エラー', () => {
+  test.each([
+    [['0'], ng('count is invalid')],
+    [['-1'], ng('count is invalid')],
+    [['+5'], ng('count is invalid')],
+    [[' 5'], ng('count is invalid')],
+    [['5 '], ng('count is invalid')],
+    [['1.5'], ng('count is invalid')],
+    [['abc'], ng('count is invalid')],
+    [[''], ng('count is invalid')],
+    [['99999999999999999999'], ng('count is invalid')],
+    [['1', 'abc'], ng('length is invalid')],
+    [['1', '-8'], ng('length is invalid')],
+    [['1', '7'], ng('length too short')],
+    [['1', '0'], ng('length too short')],
+    [['1', '73'], ng('length too long')],
+    [['1', '12', 'default'], ng('mode is invalid')],
+    [['1', '12', 'Standard'], ng('mode is invalid')],
+    [['1', '12', 'toString'], ng('mode is invalid')],
+    [['1', '12', ''], ng('mode is invalid')],
+    [['--hash'], ng('unknown option: --hash')],
+    [['-h'], ng('unknown option: -h')],
+    [['1', '12', 'standard', 'extra'], ng('too many arguments')],
+  ])('%j', (argv, expected) => {
+    expect(parseArgs(argv)).toEqual(expected);
+  });
+
+  test('count → length → mode の順に検証する', () => {
+    expect(parseArgs(['x', 'x', 'x'])).toEqual(ng('count is invalid'));
+    expect(parseArgs(['1', 'x', 'x'])).toEqual(ng('length is invalid'));
+  });
+});
