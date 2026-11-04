@@ -33,6 +33,7 @@ passwdgen -h | --help
 | `length` | `-l N`, `--length=N` | パスワードの長さ（8〜72） | `12` |
 | `mode` | `-m MODE`, `--mode=MODE` | 使う文字の種類（下の表を参照） | `standard` |
 | | `-f FMT`, `--format=FMT` | 出力形式。`plain` または `json`（下の「JSON で出力する」を参照） | `plain` |
+| | `--json` | `--format=json` と同じ | |
 | | `--hash=LIST` | 指定したハッシュだけを出力する（下の「ハッシュ」を参照） | |
 | | `-n`, `--no-hash` | ハッシュを出力せず、パスワードだけを出力する | |
 | | `-h`, `--help` | 使い方を表示して終了する | |
@@ -107,7 +108,7 @@ Argon2 と bcrypt の計算には時間がかかるので、`count` が大きい
 
 ### JSON で出力する
 
-`-f json`（`--format=json`）を付けると、結果を JSON の配列で出力します。1件でも配列になります。
+`-f json`（`--format=json`、`--json`）を付けると、結果を JSON の配列で出力します。1件でも配列になります。
 
 ```console
 $ passwdgen 2 12 -f json --hash=md5,apr1

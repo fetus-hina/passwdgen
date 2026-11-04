@@ -117,13 +117,16 @@ passwdgen -h | --help
 | count | 1番目 | `-c N` | `--count=N` | `1` | 1 以上の整数 |
 | length | 2番目 | `-l N` | `--length=N` | `12` | 8 以上 72 以下の整数 |
 | mode | 3番目 | `-m MODE` | `--mode=MODE` | `standard` | 下の表のいずれか |
-| format | なし | `-f FMT` | `--format=FMT` | `plain` | `plain` または `json`（小文字のみ） |
+| format | なし | `-f FMT` | `--format=FMT`、`--json`（`--format=json` と同じ） | `plain` | `plain` または `json`（小文字のみ） |
 
 - count / length / mode は、位置引数でもオプションでも指定できます。format はオプションでだけ指定できます。オプションの値も、位置引数と同じ検証を受けます。
 - ショートオプションは、値を次の引数として受け取ります（`-m alnum`）。`-malnum` のように続けて書く形式には対応しません（不明なオプションになります）。次の引数が `-` で始まっていても値として扱います（`-c -1` は count が不正というエラー）。
 - ロングオプションは `--mode=alnum` の形式だけを受け付けます。`--mode alnum` のようなスペース区切りはエラーにします。
 - 位置引数は、オプションの有無にかかわらず、常に count → length → mode の順に対応します。たとえば `passwdgen -c 2 5` の `5` は count に対応するので、count を2回指定したというエラーになります（length にはずらしません）。
 - 同じ値を2回指定するとエラーにします（位置引数とオプションの組み合わせ、同じオプションの繰り返しのどちらも）。
+- `--json` は `--format=json` のエイリアスです。
+  - ロング形式だけで、値は取りません（`--json=...` は不明なオプション）。
+  - format を指定したものとして扱うので、`-f` / `--format` との併用や `--json` の繰り返しは `ERROR: format is specified twice` になります。
 - `--hash=LIST` で、出力するハッシュを選べます（下の「ハッシュ」の節を参照）。
   - ロング形式だけで、ショート形式と位置引数での指定はありません。
   - LIST はカンマ区切りの識別子です。識別子は小文字だけで、前後の空白は取り除きません。
@@ -244,6 +247,7 @@ Generate 2 password(s), length=12, mode=standard
   - 生成やハッシュの計算中に予期しないエラーが起きた場合（エラーを stderr に出力し、終了コード 1）
   - JSON を使う側は、終了コードを確認してください。全件をまとめて出力する方式には変えません（大量に生成するときのメモリ使用量と、パイプが閉じたらすぐに止まる挙動を保つため）。
 - 出力形式ごとの書き出し方は、`src/formats.ts` の `WRITERS` にまとめています。`Format` 型と形式の一覧（`FORMATS`）は `WRITERS` のキーから作るので、`WRITERS` に書き出し方を足せば `-f` / `--format` で受け付けるようになります。ただし、形式を追加するときは次も手で更新してください。
+  - `src/args.ts` の `FLAG_OPTIONS`（`--json` のようなエイリアスを作る場合）
   - `src/help.ts` の、形式ごとの説明（今は json の説明だけ書いてある）
   - この AGENTS.md（オプションの表の format の行、出力フォーマットの節）と README.md / README.en.md
   - テスト（`test/args.test.ts`、`test/cli.test.ts`）

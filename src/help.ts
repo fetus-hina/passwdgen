@@ -29,6 +29,7 @@ Options:
   -m, --mode=MODE    same as the mode argument
   -f, --format=FMT   output format: ${FORMATS.join(' or ')} (default: ${DEFAULT_FORMAT})
                      json prints an array of {"password": ..., "hash": {...}}
+  --json             same as --format=json
   --hash=LIST        print only the given hashes (comma-separated, see below)
   -n, --no-hash      print passwords only, without hashes
   -h, --help         show this help and exit

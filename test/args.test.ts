@@ -148,13 +148,15 @@ describe('parseArgs：--hash', () => {
   });
 });
 
-describe('parseArgs：-f / --format', () => {
+describe('parseArgs：-f / --format / --json', () => {
   test.each([
     [['-f', 'plain'], ok(1, 12, 'standard', { format: 'plain' })],
     [['-f', 'json'], ok(1, 12, 'standard', { format: 'json' })],
     [['--format=json'], ok(1, 12, 'standard', { format: 'json' })],
     [['3', '16', 'full', '-f', 'json', '-n'], ok(3, 16, 'full', { hashes: [], format: 'json' })],
     [['--format=json', '--hash=md5'], ok(1, 12, 'standard', { hashes: ['md5'], format: 'json' })],
+    [['--json'], ok(1, 12, 'standard', { format: 'json' })],
+    [['3', '--json', '16', '-n'], ok(3, 16, 'standard', { hashes: [], format: 'json' })],
   ])('%j', (argv, expected) => {
     expect(parseArgs(argv)).toEqual(expected);
   });
@@ -168,6 +170,11 @@ describe('parseArgs：-f / --format', () => {
     [['--format', 'json'], ng('option requires a value: --format (use --format=VALUE)')],
     [['-f', 'json', '--format=plain'], ng('format is specified twice')],
     [['-fjson'], ng('unknown option: -fjson')],
+    // --json は format を指定したものとして扱う
+    [['--json', '--json'], ng('format is specified twice')],
+    [['--json', '-f', 'json'], ng('format is specified twice')],
+    [['--format=plain', '--json'], ng('format is specified twice')],
+    [['--json=1'], ng('unknown option: --json=1')],
     // format は位置引数では指定できない
     [['1', '12', 'standard', 'json'], ng('too many arguments')],
   ])('%j', (argv, expected) => {

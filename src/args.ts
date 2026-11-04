@@ -38,6 +38,11 @@ const VALUE_OPTIONS: ReadonlyArray<{ readonly field: Field; readonly short?: str
   { field: 'format', short: '-f', long: '--format' },
 ];
 
+/** 値を取らず、決まった値を指定するオプション（エイリアス） */
+const FLAG_OPTIONS: ReadonlyArray<{ readonly field: Field; readonly value: string; readonly long: string }> = [
+  { field: 'format', value: 'json', long: '--json' },
+];
+
 /** 位置引数がどの値に対応するか（先頭から順に）。hash と format は位置引数では指定できない */
 const POSITIONAL_FIELDS: readonly Field[] = ['count', 'length', 'mode'];
 
@@ -52,6 +57,7 @@ interface RawArgs {
  * 書式：`[options] [count] [length] [mode]`
  * - count / length / mode は、位置引数でも `-c N` / `--count=N` などのオプションでも指定できる。
  *   位置引数は常に count → length → mode の順に対応し、同じ値を2回指定するとエラーになる。
+ * - `--json` は `--format=json` と同じ。
  * - `--hash=LIST` で出力するハッシュを選べる。`-n` / `--no-hash` との併用はエラー。
  * - `-h` / `--help` があれば、ほかの引数に関係なく（不正な引数があっても）help を返す。
  *
@@ -90,6 +96,15 @@ function collectArgs(argv: readonly string[]): Result<RawArgs> {
     const arg = argv[i] ?? '';
     if (arg === '-n' || arg === '--no-hash') {
       noHash = true;
+      continue;
+    }
+
+    const flagOption = FLAG_OPTIONS.find((o) => o.long === arg);
+    if (flagOption !== undefined) {
+      const error = assign(flagOption.field, flagOption.value);
+      if (error !== undefined) {
+        return failure(error);
+      }
       continue;
     }
 

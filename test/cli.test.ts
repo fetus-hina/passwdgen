@@ -162,6 +162,14 @@ describe('run', () => {
       expect(stdout).toBe(`${JSON.stringify(parsed, null, 2)}\n`);
     });
 
+    test('--json でも JSON で出力する', async () => {
+      const { code, stdout } = await capture(['2', '8', '--json', '-n']);
+      expect(code).toBe(0);
+      const parsed = JSON.parse(stdout) as Array<{ password: string; hash: object }>;
+      expect(parsed).toHaveLength(2);
+      expect(stdout).toBe(`${JSON.stringify(parsed, null, 2)}\n`);
+    });
+
     test('--no-hash のときは hash を空オブジェクトにする', async () => {
       const { stdout } = await capture(['2', '8', '-f', 'json', '-n']);
       const parsed = JSON.parse(stdout) as Array<{ password: string; hash: object }>;

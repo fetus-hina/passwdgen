@@ -33,6 +33,7 @@ passwdgen -h | --help
 | `length` | `-l N`, `--length=N` | Password length (8–72) | `12` |
 | `mode` | `-m MODE`, `--mode=MODE` | Character set to use (see the table below) | `standard` |
 | | `-f FMT`, `--format=FMT` | Output format: `plain` or `json` (see [JSON output](#json-output)) | `plain` |
+| | `--json` | Same as `--format=json` | |
 | | `--hash=LIST` | Print only the given hashes (see [Hashes](#hashes)) | |
 | | `-n`, `--no-hash` | Print passwords only, without hashes | |
 | | `-h`, `--help` | Show usage and exit | |
@@ -107,7 +108,7 @@ Argon2 and bcrypt are slow to compute, so printing hashes takes a few seconds wh
 
 ### JSON output
 
-With `-f json` (`--format=json`), the result is printed as a JSON array. It is an array even for a single password.
+With `-f json` (`--format=json` or `--json`), the result is printed as a JSON array. It is an array even for a single password.
 
 ```console
 $ passwdgen 2 12 -f json --hash=md5,apr1
