@@ -82,8 +82,8 @@ describe('satisfiesStrictRule', () => {
     ['AB3$CDEF', false], // 英小文字がない
     ['Abc$defg', false], // 数字がない
     ['Ab3cdefg', false], // 記号がない
-    ['$Ab3cdef', false], // 先頭が記号
-    ['Ab3cdef$', false], // 末尾が記号
+    ['$Ab3cdef', true], // 先頭が記号でもよい
+    ['Ab3cdef$', true], // 末尾が記号でもよい
   ])('%s → %s', (password, expected) => {
     expect(satisfiesStrictRule(password)).toBe(expected);
   });

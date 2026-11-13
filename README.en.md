@@ -63,7 +63,7 @@ passwdgen --bits=128 -m alnum
 
 - It cannot be used together with length.
 - If the resulting length is outside 8–72, it is an error.
-- In `standard`, `readable` and `full` modes, passwords are regenerated until they meet the rules (see Modes below), so the actual entropy is slightly lower than the calculated value (by up to about 2 bits).
+- In `standard`, `readable` and `full` modes, passwords are regenerated until they meet the rules (see Modes below), so the actual entropy is slightly lower than the calculated value (by up to about 1.5 bits).
 
 ### Modes
 
@@ -78,7 +78,7 @@ passwdgen --bits=128 -m alnum
 | `lalnum`, `lower` | Lowercase letters and digits |
 | `ualnum`, `upper` | Uppercase letters and digits |
 
-In `standard`, `readable` and `full` modes, every password contains at least one lowercase letter, one uppercase letter, one digit and one symbol, and always starts and ends with a letter or digit.
+In `standard`, `readable` and `full` modes, every password contains at least one lowercase letter, one uppercase letter, one digit and one symbol. It may start or end with a symbol.
 
 ### Example
 

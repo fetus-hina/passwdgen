@@ -15,14 +15,12 @@ export function generate(length: number, mode: Mode): string {
   }
 }
 
-/** 英小文字・英大文字・数字・記号をそれぞれ含み、先頭と末尾が英数字である */
+/** 英小文字・英大文字・数字・記号をそれぞれ含む */
 export function satisfiesStrictRule(password: string): boolean {
   return (
     /[a-z]/.test(password) &&
     /[A-Z]/.test(password) &&
     /[0-9]/.test(password) &&
-    /[^0-9a-zA-Z]/.test(password) &&
-    /^[0-9a-zA-Z]/.test(password) &&
-    /[0-9a-zA-Z]$/.test(password)
+    /[^0-9a-zA-Z]/.test(password)
   );
 }

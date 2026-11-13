@@ -12,7 +12,7 @@ const withoutAmbiguous = (chars: string): string => chars.replace(/[01IOl]/g, ''
 export interface ModeDefinition {
   /** パスワードに使う文字 */
   readonly charset: string;
-  /** 英小文字・英大文字・数字・記号を含み、先頭と末尾が英数字であることを要求するか */
+  /** 英小文字・英大文字・数字・記号をそれぞれ含むことを要求するか */
   readonly strict: boolean;
   /** `--help` に表示する説明 */
   readonly description: string;
