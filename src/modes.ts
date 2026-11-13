@@ -3,6 +3,9 @@ const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const LOWER = 'abcdefghijklmnopqrstuvwxyz';
 const SYMBOLS = '!$%&+-@';
 
+/** 空白を除く ASCII の印字可能文字（0x21〜0x7E の94文字） */
+const PRINTABLE = String.fromCharCode(...Array.from({ length: 0x7e - 0x21 + 1 }, (_, i) => 0x21 + i));
+
 /** 見間違えやすい文字を除く（0 1 I O l） */
 const withoutAmbiguous = (chars: string): string => chars.replace(/[01IOl]/g, '');
 
@@ -21,7 +24,7 @@ export const MODES = {
     strict: true,
     description: `letters, digits and ${SYMBOLS} (excluding ambiguous 0 1 I O l)`,
   },
-  full: { charset: DIGITS + UPPER + LOWER + SYMBOLS, strict: true, description: `letters, digits and ${SYMBOLS}` },
+  full: { charset: PRINTABLE, strict: true, description: 'all printable ASCII characters except space' },
   alnum: { charset: DIGITS + UPPER + LOWER, strict: false, description: 'letters and digits' },
   alpha: { charset: UPPER + LOWER, strict: false, description: 'letters' },
   number: { charset: DIGITS, strict: false, description: 'digits' },

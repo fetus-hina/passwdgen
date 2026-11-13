@@ -5,7 +5,7 @@ import { DEFAULT_MODE, isMode, MODES, type Mode } from '../src/modes.ts';
 /** AGENTS.md の mode 表を正規表現で書いたもの */
 const EXPECTED: Record<Mode, { readonly pattern: RegExp; readonly size: number }> = {
   standard: { pattern: /^[2-9A-HJ-NP-Za-km-z!$%&+\-@]+$/, size: 8 + 24 + 25 + 7 },
-  full: { pattern: /^[0-9A-Za-z!$%&+\-@]+$/, size: 10 + 26 + 26 + 7 },
+  full: { pattern: /^[!-~]+$/, size: 94 },
   alnum: { pattern: /^[0-9A-Za-z]+$/, size: 62 },
   alpha: { pattern: /^[A-Za-z]+$/, size: 52 },
   number: { pattern: /^[0-9]+$/, size: 10 },

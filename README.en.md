@@ -56,7 +56,7 @@ The maximum length of 72 matches the longest password bcrypt can handle.
 | Mode | Characters |
 |---|---|
 | `standard` | Uppercase and lowercase letters, digits and the symbols `!$%&+-@`, excluding the easily confused `0 1 I O l` |
-| `full` | Uppercase and lowercase letters, digits and the symbols `!$%&+-@` |
+| `full` | All printable ASCII characters except space (uppercase and lowercase letters, digits and 32 symbols; 94 in total) |
 | `alnum` | Uppercase and lowercase letters and digits |
 | `alpha` | Uppercase and lowercase letters |
 | `number` | Digits |
