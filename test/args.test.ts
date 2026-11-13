@@ -148,6 +148,71 @@ describe('parseArgs：--hash', () => {
   });
 });
 
+describe('parseArgs：--bits', () => {
+  test.each([
+    // 1文字あたり log2(文字種類数) ビットとして、指定したビット数以上になる最小の長さ
+    // standard は 69 種類（6.108… ビット）、readable は 64 種類（ちょうど 6 ビット）
+    [['--bits=256'], ok(1, 42, 'standard')],
+    [['--bits=0256'], ok(1, 42, 'standard')],
+    [['-b', '256'], ok(1, 42, 'standard')],
+    [['-b', '256', '-m', 'full', '3'], ok(3, 40, 'full')],
+    [['--bits=256', '-m', 'full'], ok(1, 40, 'full')],
+    [['--bits=128', '--mode=number'], ok(1, 39, 'number')],
+    [['--bits=48', '-m', 'readable'], ok(1, 8, 'readable')],
+    [['--bits=47', '-m', 'readable'], ok(1, 8, 'readable')],
+    [['--bits=49', '-m', 'readable'], ok(1, 9, 'readable')],
+    [['--bits=432', '-m', 'readable'], ok(1, 72, 'readable')],
+    [['--bits=439'], ok(1, 72, 'standard')],
+    [['--bits=43'], ok(1, 8, 'standard')],
+    // 位置引数は count → length → mode の順なので、count だけなら併用できる
+    [['3', '--bits=256', '-n'], ok(3, 42, 'standard', { hashes: [] })],
+    [['-m', 'full', '--bits=256', '5'], ok(5, 40, 'full')],
+  ])('%j', (argv, expected) => {
+    expect(parseArgs(argv)).toEqual(expected);
+  });
+
+  test.each([
+    [['--bits=0'], ng('bits is invalid')],
+    [['--bits='], ng('bits is invalid')],
+    [['--bits=abc'], ng('bits is invalid')],
+    [['--bits=+1'], ng('bits is invalid')],
+    [['--bits=-1'], ng('bits is invalid')],
+    [['--bits=1.5'], ng('bits is invalid')],
+    [['--bits=1'], ng('bits too small')],
+    [['--bits=42'], ng('bits too small')],
+    [['--bits=42', '-m', 'readable'], ng('bits too small')],
+    [['--bits=440'], ng('bits too large')],
+    [['--bits=433', '-m', 'readable'], ng('bits too large')],
+    [['--bits=256', '-m', 'number'], ng('bits too large')],
+    [['--bits=99999999999999999999'], ng('bits is invalid')],
+    [['--bits'], ng('option requires a value: --bits (use --bits=VALUE)')],
+    [['--bits', '256'], ng('option requires a value: --bits (use --bits=VALUE)')],
+    [['--bits=256', '--bits=256'], ng('bits is specified twice')],
+    [['-b'], ng('option requires a value: -b')],
+    [['-b', '0'], ng('bits is invalid')],
+    [['-b', '-1'], ng('bits is invalid')],
+    [['-b', '1'], ng('bits too small')],
+    [['-b256'], ng('unknown option: -b256')],
+    [['-b', '256', '--bits=256'], ng('bits is specified twice')],
+    [['-b', '256', '-l', '20'], ng('--bits and --length cannot be used together')],
+    // length との併用はエラー（位置引数・オプションのどちらでも）
+    [['--bits=256', '-l', '20'], ng('--bits and --length cannot be used together')],
+    [['--length=20', '--bits=256'], ng('--bits and --length cannot be used together')],
+    [['1', '20', '--bits=256'], ng('--bits and --length cannot be used together')],
+    // 書式の誤りとして、値の検証より先に調べる
+    [['0', '20', '--bits=0'], ng('--bits and --length cannot be used together')],
+  ])('%j', (argv, expected) => {
+    expect(parseArgs(argv)).toEqual(expected);
+  });
+
+  test('値の検証は count → bits → mode の順で、bits から求めた長さの範囲は mode の直後に調べる', () => {
+    expect(parseArgs(['0', '--bits=0'])).toEqual(ng('count is invalid'));
+    expect(parseArgs(['--bits=0', '-m', 'bogus'])).toEqual(ng('bits is invalid'));
+    expect(parseArgs(['--bits=1', '-m', 'bogus'])).toEqual(ng('mode is invalid'));
+    expect(parseArgs(['--bits=1', '--hash=bogus', '-f', 'bogus'])).toEqual(ng('bits too small'));
+  });
+});
+
 describe('parseArgs：-f / --format / --json', () => {
   test.each([
     [['-f', 'plain'], ok(1, 12, 'standard', { format: 'plain' })],

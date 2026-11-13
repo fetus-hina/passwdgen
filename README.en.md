@@ -31,6 +31,7 @@ passwdgen -h | --help
 |---|---|---|---|
 | `count` | `-c N`, `--count=N` | Number of passwords to generate (1 or more) | `1` |
 | `length` | `-l N`, `--length=N` | Password length (8–72) | `12` |
+| | `-b N`, `--bits=N` | Specify the strength in bits instead of the length (see [Length from bits](#length-from-bits)) | |
 | `mode` | `-m MODE`, `--mode=MODE` | Character set to use (see the table below) | `standard` |
 | | `-f FMT`, `--format=FMT` | Output format: `plain` or `json` (see [JSON output](#json-output)) | `plain` |
 | | `--json` | Same as `--format=json` | |
@@ -50,6 +51,19 @@ passwdgen --mode=alnum
 - Short options take their value as the next argument (`-m alnum`). Long options take it after `=` (`--mode=alnum`).
 
 The maximum length of 72 matches the longest password bcrypt can handle.
+
+### Length from bits
+
+With `--bits=N`, passwords are generated with the shortest length that gives at least N bits. Each character counts as `log2(number of characters in the mode)` bits. For example, `--bits=256` in `standard` mode (69 characters) gives a length of 42.
+
+```sh
+passwdgen --bits=256
+passwdgen --bits=128 -m alnum
+```
+
+- It cannot be used together with length.
+- If the resulting length is outside 8–72, it is an error.
+- In `standard`, `readable` and `full` modes, passwords are regenerated until they meet the rules (see Modes below), so the actual entropy is slightly lower than the calculated value (by up to about 2 bits).
 
 ### Modes
 

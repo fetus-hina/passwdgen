@@ -26,6 +26,9 @@ Arguments (each can also be given as an option below):
 Options:
   -c, --count=N      same as the count argument
   -l, --length=N     same as the length argument
+  -b, --bits=N       use the shortest length with at least N bits
+                     (log2(charset size) bits per character);
+                     cannot be used with length
   -m, --mode=MODE    same as the mode argument
   -f, --format=FMT   output format: ${FORMATS.join(' or ')} (default: ${DEFAULT_FORMAT})
                      json prints an array of {"password": ..., "hash": {...}}

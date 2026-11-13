@@ -1,6 +1,6 @@
 import { DEFAULT_FORMAT, isFormat, type Format } from './formats.ts';
 import { DEFAULT_HASHES, parseHashList, type HashId } from './hashes.ts';
-import { DEFAULT_MODE, isMode, type Mode } from './modes.ts';
+import { DEFAULT_MODE, isMode, MODES, type Mode } from './modes.ts';
 import { failure, success, type Result } from './result.ts';
 
 export const DEFAULT_COUNT = 1;
@@ -24,7 +24,7 @@ export type ParseResult =
   | { readonly kind: 'error'; readonly error: string };
 
 /** 値を取るオプションと位置引数で指定する値 */
-type Field = 'count' | 'length' | 'mode' | 'hash' | 'format';
+type Field = 'count' | 'length' | 'bits' | 'mode' | 'hash' | 'format';
 
 /**
  * 値を取るオプション。ロング形式は `--name=value`、ショート形式は `-x value`（スペース区切り）。
@@ -33,6 +33,7 @@ type Field = 'count' | 'length' | 'mode' | 'hash' | 'format';
 const VALUE_OPTIONS: ReadonlyArray<{ readonly field: Field; readonly short?: string; readonly long: string }> = [
   { field: 'count', short: '-c', long: '--count' },
   { field: 'length', short: '-l', long: '--length' },
+  { field: 'bits', short: '-b', long: '--bits' },
   { field: 'mode', short: '-m', long: '--mode' },
   { field: 'hash', long: '--hash' },
   { field: 'format', short: '-f', long: '--format' },
@@ -43,7 +44,7 @@ const FLAG_OPTIONS: ReadonlyArray<{ readonly field: Field; readonly value: strin
   { field: 'format', value: 'json', long: '--json' },
 ];
 
-/** 位置引数がどの値に対応するか（先頭から順に）。hash と format は位置引数では指定できない */
+/** 位置引数がどの値に対応するか（先頭から順に）。bits、hash、format は位置引数では指定できない */
 const POSITIONAL_FIELDS: readonly Field[] = ['count', 'length', 'mode'];
 
 /** 引数の書式を解析した結果（値はまだ検証していない文字列のまま） */
@@ -57,6 +58,7 @@ interface RawArgs {
  * 書式：`[options] [count] [length] [mode]`
  * - count / length / mode は、位置引数でも `-c N` / `--count=N` などのオプションでも指定できる。
  *   位置引数は常に count → length → mode の順に対応し、同じ値を2回指定するとエラーになる。
+ * - `--bits=N` で、N ビット以上になる最小の長さを指定できる。length との併用はエラー。
  * - `--json` は `--format=json` と同じ。
  * - `--hash=LIST` で出力するハッシュを選べる。`-n` / `--no-hash` との併用はエラー。
  * - `-h` / `--help` があれば、ほかの引数に関係なく（不正な引数があっても）help を返す。
@@ -154,17 +156,24 @@ function collectArgs(argv: readonly string[]): Result<RawArgs> {
     }
   }
 
+  if (values.bits !== undefined && values.length !== undefined) {
+    return failure('--bits and --length cannot be used together');
+  }
+
   return success({ values, noHash });
 }
 
-/** 値を count → length → mode → hash → format の順に検証し、デフォルト値を補う。不正なら失敗を返す */
+/**
+ * 値を count → length → bits → mode → hash → format の順に検証し、デフォルト値を補う。不正なら失敗を返す。
+ * bits から求めた長さは mode によって変わるので、その範囲は mode を検証した直後に調べる。
+ */
 function resolveOptions({ values, noHash }: RawArgs): Result<Options> {
   const count = values.count === undefined ? DEFAULT_COUNT : parseInteger(values.count);
   if (count === undefined || count < 1) {
     return failure('count is invalid');
   }
 
-  const length = values.length === undefined ? DEFAULT_LENGTH : parseInteger(values.length);
+  let length = values.length === undefined ? DEFAULT_LENGTH : parseInteger(values.length);
   if (length === undefined) {
     return failure('length is invalid');
   }
@@ -175,9 +184,24 @@ function resolveOptions({ values, noHash }: RawArgs): Result<Options> {
     return failure('length too long');
   }
 
+  const bits = values.bits === undefined ? undefined : parseInteger(values.bits);
+  if (values.bits !== undefined && (bits === undefined || bits < 1)) {
+    return failure('bits is invalid');
+  }
+
   const mode = values.mode ?? DEFAULT_MODE;
   if (!isMode(mode)) {
     return failure('mode is invalid');
+  }
+
+  if (bits !== undefined) {
+    length = lengthForBits(bits, MODES[mode].charset.length);
+    if (length < MIN_LENGTH) {
+      return failure('bits too small');
+    }
+    if (length > MAX_LENGTH) {
+      return failure('bits too large');
+    }
   }
 
   let hashes: readonly HashId[] = noHash ? [] : DEFAULT_HASHES;
@@ -195,6 +219,14 @@ function resolveOptions({ values, noHash }: RawArgs): Result<Options> {
   }
 
   return success({ count, length, mode, hashes, format });
+}
+
+/**
+ * 1文字あたり log2(charsetSize) ビットとして、bits ビット以上になる最小の長さを返す。
+ * 生成条件（mode の strict）による減少は考慮しない。
+ */
+export function lengthForBits(bits: number, charsetSize: number): number {
+  return Math.ceil(bits / Math.log2(charsetSize));
 }
 
 /** `-` で始まり、負の数（`-1` など）に見えないものをオプションとみなす */

@@ -116,10 +116,11 @@ passwdgen -h | --help
 |---|---|---|---|---|---|
 | count | 1番目 | `-c N` | `--count=N` | `1` | 1 以上の整数 |
 | length | 2番目 | `-l N` | `--length=N` | `12` | 8 以上 72 以下の整数 |
+| bits | なし | `-b N` | `--bits=N` | なし | 1 以上の整数。求めた長さが 8 以上 72 以下になること |
 | mode | 3番目 | `-m MODE` | `--mode=MODE` | `standard` | 下の表のいずれか |
 | format | なし | `-f FMT` | `--format=FMT`、`--json`（`--format=json` と同じ） | `plain` | `plain` または `json`（小文字のみ） |
 
-- count / length / mode は、位置引数でもオプションでも指定できます。format はオプションでだけ指定できます。オプションの値も、位置引数と同じ検証を受けます。
+- count / length / mode は、位置引数でもオプションでも指定できます。bits と format はオプションでだけ指定できます。オプションの値も、位置引数と同じ検証を受けます。
 - ショートオプションは、値を次の引数として受け取ります（`-m alnum`）。`-malnum` のように続けて書く形式には対応しません（不明なオプションになります）。次の引数が `-` で始まっていても値として扱います（`-c -1` は count が不正というエラー）。
 - ロングオプションは `--mode=alnum` の形式だけを受け付けます。`--mode alnum` のようなスペース区切りはエラーにします。
 - 位置引数は、オプションの有無にかかわらず、常に count → length → mode の順に対応します。たとえば `passwdgen -c 2 5` の `5` は count に対応するので、count を2回指定したというエラーになります（length にはずらしません）。
@@ -127,6 +128,13 @@ passwdgen -h | --help
 - `--json` は `--format=json` のエイリアスです。
   - ロング形式だけで、値は取りません（`--json=...` は不明なオプション）。
   - format を指定したものとして扱うので、`-f` / `--format` との併用や `--json` の繰り返しは `ERROR: format is specified twice` になります。
+- `--bits=N` で、長さの代わりにビット数を指定できます。
+  - 1文字あたり `log2(文字集合の文字数)` ビットとして、`長さ × log2(文字数)` が N 以上になる最小の長さを使います（`Math.ceil(N / Math.log2(文字数))`）。文字数は mode の文字集合の文字数です。
+  - 「生成条件あり」の mode では、条件を満たさないパスワードを作り直すため、実際のエントロピーは `長さ × log2(文字数)` より少し小さくなります（短いと約2ビット）。これは補正しません（ユーザーが決めた仕様）。
+  - 位置引数での指定はありません。
+  - length（位置引数、`-l`、`--length`）と併用するとエラーです。
+  - 求めた長さが 8 未満なら `ERROR: bits too small`、72 を超えるなら `ERROR: bits too large` です。
+  - ヘッダ行の `length=` には、求めた長さを表示します。
 - `--hash=LIST` で、出力するハッシュを選べます（下の「ハッシュ」の節を参照）。
   - ロング形式だけで、ショート形式と位置引数での指定はありません。
   - LIST はカンマ区切りの識別子です。識別子は小文字だけで、前後の空白は取り除きません。
@@ -141,13 +149,13 @@ passwdgen -h | --help
 - `-n` / `--no-hash` は位置を問わず受け付けます（`-n` は `--no-hash` の短縮形）。
 - `-h` / `--help` があれば、ほかの引数に関係なく（不正な引数があっても）使い方を stdout に出力し、終了コード 0 で終了します。使い方は英語で、`src/help.ts` の `helpText()` が生成します。mode の説明は `src/modes.ts` の `description` から、ハッシュの一覧は `src/hashes.ts` の `HASH_ALGORITHMS` から作ります。
 - `-` で始まり2文字目が数字でない引数のうち、上記のオプション以外のものは不明なオプションとしてエラーにします。`-1` のような負の数は位置引数として扱い、値が不正というエラーになります。
-- オプションの書式の誤り（不明なオプション、値がない、2回指定）と位置引数の数は、値の検証より先にチェックします。
+- オプションの書式の誤り（不明なオプション、値がない、2回指定、`--bits` と length の併用）と位置引数の数は、値の検証より先にチェックします。
 - 4個目以降の位置引数もエラーにします。
 
 ### エラー
 
 - エラーメッセージは **stderr** に出力し、終了コード 1 で終了します。
-- 引数の値は count → length → mode → hash → format の順に検証し、最初に見つかったエラーだけを報告します。
+- 引数の値は count → length → bits → mode → hash → format の順に検証し（bits から求めた長さの範囲は、mode を検証した直後に調べます）、最初に見つかったエラーだけを報告します。
 - `passwdgen 10 | head -1` のようにパイプの読み手が先に終了した場合（stdout への書き込みが EPIPE）は、その時点で生成を止め、何も出力せず終了コード 0 で終了します。そのため `run()` は出力のたびに書き込みの完了を await します（`Io` の各関数は Promise を返します）。
 - 予期しない実行時エラー（EPIPE 以外の書き込みエラーなど）の場合は、エラー内容を stderr に出力し、終了コード 1 で終了します。
 
@@ -157,12 +165,16 @@ passwdgen -h | --help
 | length が数値でない | `ERROR: length is invalid` |
 | length < 8 | `ERROR: length too short` |
 | length > 72 | `ERROR: length too long` |
+| bits が不正（数値でない、0） | `ERROR: bits is invalid` |
+| bits から求めた長さ < 8 | `ERROR: bits too small` |
+| bits から求めた長さ > 72 | `ERROR: bits too large` |
+| `--bits` と length を併用した | `ERROR: --bits and --length cannot be used together` |
 | mode が不正 | `ERROR: mode is invalid` |
 | 不明なオプション | `ERROR: unknown option: <arg>` |
 | 位置引数が多すぎる | `ERROR: too many arguments` |
 | ショートオプションの値がない | `ERROR: option requires a value: -c` |
 | ロングオプションに `=` がない | `ERROR: option requires a value: --count (use --count=VALUE)` |
-| 同じ値を2回指定した | `ERROR: count is specified twice`（length / mode / hash も同様） |
+| 同じ値を2回指定した | `ERROR: count is specified twice`（length / bits / mode / hash も同様） |
 | `--hash=` の値が空 | `ERROR: hash is empty` |
 | `--hash=` に空の要素がある | `ERROR: hash has an empty item` |
 | `--hash=` に不明な識別子がある | `ERROR: unknown hash: <name>` |

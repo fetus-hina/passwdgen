@@ -49,6 +49,14 @@ describe('run', () => {
     expect(stdout).toMatch(/^Generate 2 password\(s\), length=10, mode=number\n\n[0-9]{10}\n[0-9]{10}\n$/);
   });
 
+  test('--bits で求めた長さをヘッダに表示し、その長さで生成する', async () => {
+    const { code, stdout } = await capture(['--bits=256', '-n']);
+    expect(code).toBe(0);
+    const lines = stdout.split('\n');
+    expect(lines[0]).toBe('Generate 1 password(s), length=42, mode=standard');
+    expect(lines[2]).toHaveLength(42);
+  });
+
   test('引数なしのデフォルト値をヘッダに表示する', async () => {
     const { stdout } = await capture(['--no-hash']);
     expect(stdout.split('\n')[0]).toBe('Generate 1 password(s), length=12, mode=standard');
