@@ -4,7 +4,8 @@ import { DEFAULT_MODE, isMode, MODES, type Mode } from '../src/modes.ts';
 
 /** AGENTS.md の mode 表を正規表現で書いたもの */
 const EXPECTED: Record<Mode, { readonly pattern: RegExp; readonly size: number }> = {
-  standard: { pattern: /^[2-9A-HJ-NP-Za-km-z!$%&+\-@]+$/, size: 8 + 24 + 25 + 7 },
+  standard: { pattern: /^[0-9A-Za-z!$%&+\-@]+$/, size: 10 + 26 + 26 + 7 },
+  readable: { pattern: /^[2-9A-HJ-NP-Za-km-z!$%&+\-@]+$/, size: 8 + 24 + 25 + 7 },
   full: { pattern: /^[!-~]+$/, size: 94 },
   alnum: { pattern: /^[0-9A-Za-z]+$/, size: 62 },
   alpha: { pattern: /^[A-Za-z]+$/, size: 52 },
@@ -35,12 +36,13 @@ describe('MODES', () => {
     expect(MODES.upper.charset).toMatch(/[0-9]/);
   });
 
-  test('standard は見間違えやすい文字を含まない', () => {
-    expect(MODES.standard.charset).not.toMatch(/[01IOl]/);
+  test('readable は見間違えやすい文字を含まない', () => {
+    expect(MODES.readable.charset).not.toMatch(/[01IOl]/);
   });
 
   test('isMode', () => {
     expect(isMode('standard')).toBe(true);
+    expect(isMode('readable')).toBe(true);
     expect(isMode('upper')).toBe(true);
     expect(isMode('default')).toBe(false);
     expect(isMode('toString')).toBe(false);

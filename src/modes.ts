@@ -19,7 +19,8 @@ export interface ModeDefinition {
 }
 
 export const MODES = {
-  standard: {
+  standard: { charset: DIGITS + UPPER + LOWER + SYMBOLS, strict: true, description: `letters, digits and ${SYMBOLS}` },
+  readable: {
     charset: withoutAmbiguous(DIGITS + UPPER + LOWER) + SYMBOLS,
     strict: true,
     description: `letters, digits and ${SYMBOLS} (excluding ambiguous 0 1 I O l)`,

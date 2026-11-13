@@ -40,8 +40,8 @@ Options:
 Modes:
 ${modes}
 
-  standard and full always include lowercase, uppercase, digits and symbols,
-  and never start or end with a symbol.
+  standard, readable and full always include lowercase, uppercase, digits
+  and symbols, and never start or end with a symbol.
 
 Hashes (printed under each password in this order; * = printed by default):
 ${hashes}
