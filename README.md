@@ -30,7 +30,7 @@ passwdgen -h | --help
 | 引数 | オプション | 意味 | デフォルト |
 |---|---|---|---|
 | `count` | `-c N`, `--count=N` | 生成する個数（1 以上） | `1` |
-| `length` | `-l N`, `--length=N` | パスワードの長さ（8〜72） | `12` |
+| `length` | `-l N`, `--length=N` | パスワードの長さ（8〜72） | 128 ビット以上になる長さ |
 | | `-b N`, `--bits=N` | 長さの代わりにビット数を指定する（下の「ビット数で長さを指定する」を参照） | |
 | `mode` | `-m MODE`, `--mode=MODE` | 使う文字の種類（下の表を参照） | `standard` |
 | | `-f FMT`, `--format=FMT` | 出力形式。`plain` または `json`（下の「JSON で出力する」を参照） | `plain` |
@@ -42,7 +42,7 @@ passwdgen -h | --help
 count、length、mode は、位置引数とオプションのどちらでも指定できます。たとえば次の3つは同じ意味です。
 
 ```sh
-passwdgen 1 12 alnum
+passwdgen 1 22 alnum
 passwdgen -m alnum
 passwdgen --mode=alnum
 ```
@@ -62,6 +62,7 @@ passwdgen --bits=128 -m alnum
 ```
 
 - length と同時には指定できません。
+- length も `--bits` も指定しない場合は、`--bits=128` と同じ長さになります（`standard` では 21、`alnum` では 22、`number` では 39 など）。
 - 求めた長さが 8〜72 の範囲に収まらない場合はエラーになります。
 - `standard`、`readable`、`full` では生成条件（下の mode の節を参照）を満たすまで作り直すので、実際のエントロピーは計算値より少し（最大で約1.5ビット）小さくなります。
 

@@ -115,7 +115,7 @@ passwdgen -h | --help
 | 値 | 位置引数 | ショート | ロング | デフォルト | 制約 |
 |---|---|---|---|---|---|
 | count | 1番目 | `-c N` | `--count=N` | `1` | 1 以上の整数 |
-| length | 2番目 | `-l N` | `--length=N` | `12` | 8 以上 72 以下の整数 |
+| length | 2番目 | `-l N` | `--length=N` | 128 ビット以上になる最小の長さ（下記） | 8 以上 72 以下の整数 |
 | bits | なし | `-b N` | `--bits=N` | なし | 1 以上の整数。求めた長さが 8 以上 72 以下になること |
 | mode | 3番目 | `-m MODE` | `--mode=MODE` | `standard` | 下の表のいずれか |
 | format | なし | `-f FMT` | `--format=FMT`、`--json`（`--format=json` と同じ） | `plain` | `plain` または `json`（小文字のみ） |
@@ -135,6 +135,7 @@ passwdgen -h | --help
   - length（位置引数、`-l`、`--length`）と併用するとエラーです。
   - 求めた長さが 8 未満なら `ERROR: bits too small`、72 を超えるなら `ERROR: bits too large` です。
   - ヘッダ行の `length=` には、求めた長さを表示します。
+- length も bits も指定しない場合は、`--bits=128` と同じ長さを使います（`src/args.ts` の `DEFAULT_BITS`）。長さは mode によって変わります（standard=21、readable=22、full=20、alnum=22、alpha=23、number=39、lalnum / lower / ualnum / upper=25）。どの mode でも 8〜72 に収まります。
 - `--hash=LIST` で、出力するハッシュを選べます（下の「ハッシュ」の節を参照）。
   - ロング形式だけで、ショート形式と位置引数での指定はありません。
   - LIST はカンマ区切りの識別子です。識別子は小文字だけで、前後の空白は取り除きません。
@@ -214,7 +215,7 @@ passwdgen -h | --help
 #### plain
 
 ```
-Generate 2 password(s), length=12, mode=standard, bits=73.30
+Generate 2 password(s), length=21, mode=standard, bits=128.28
                                                      ← 空行
 <password1>
         $1$<salt8>$<hash22>

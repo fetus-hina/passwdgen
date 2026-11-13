@@ -30,7 +30,7 @@ passwdgen -h | --help
 | Argument | Option | Description | Default |
 |---|---|---|---|
 | `count` | `-c N`, `--count=N` | Number of passwords to generate (1 or more) | `1` |
-| `length` | `-l N`, `--length=N` | Password length (8–72) | `12` |
+| `length` | `-l N`, `--length=N` | Password length (8–72) | Enough for 128 bits |
 | | `-b N`, `--bits=N` | Specify the strength in bits instead of the length (see [Length from bits](#length-from-bits)) | |
 | `mode` | `-m MODE`, `--mode=MODE` | Character set to use (see the table below) | `standard` |
 | | `-f FMT`, `--format=FMT` | Output format: `plain` or `json` (see [JSON output](#json-output)) | `plain` |
@@ -42,7 +42,7 @@ passwdgen -h | --help
 count, length and mode can be given either as positional arguments or as options. For example, these three commands are equivalent:
 
 ```sh
-passwdgen 1 12 alnum
+passwdgen 1 22 alnum
 passwdgen -m alnum
 passwdgen --mode=alnum
 ```
@@ -62,6 +62,7 @@ passwdgen --bits=128 -m alnum
 ```
 
 - It cannot be used together with length.
+- If neither length nor `--bits` is given, the length is the same as with `--bits=128` (21 in `standard`, 22 in `alnum`, 39 in `number`, and so on).
 - If the resulting length is outside 8–72, it is an error.
 - In `standard`, `readable` and `full` modes, passwords are regenerated until they meet the rules (see Modes below), so the actual entropy is slightly lower than the calculated value (by up to about 1.5 bits).
 

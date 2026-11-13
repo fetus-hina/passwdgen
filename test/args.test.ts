@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { parseArgs } from '../src/args.ts';
+import { MODES } from '../src/modes.ts';
 
 const DEFAULT = ['md5', 'apr1', 'bcrypt', 'argon2id'];
 
@@ -17,8 +18,8 @@ const ng = (message: string) => ({ kind: 'error', error: `ERROR: ${message}` });
 
 describe('parseArgs：正常系', () => {
   test.each([
-    [[], ok(1, 12, 'standard')],
-    [['5'], ok(5, 12, 'standard')],
+    [[], ok(1, 21, 'standard')],
+    [['5'], ok(5, 21, 'standard')],
     [['5', '20'], ok(5, 20, 'standard')],
     [['5', '20', 'alnum'], ok(5, 20, 'alnum')],
     [['1', '8'], ok(1, 8, 'standard')],
@@ -52,18 +53,18 @@ describe('parseArgs：正常系', () => {
 
 describe('parseArgs：-c / -l / -m と --count= / --length= / --mode=', () => {
   test.each([
-    [['-c', '5'], ok(5, 12, 'standard')],
+    [['-c', '5'], ok(5, 21, 'standard')],
     [['-l', '20'], ok(1, 20, 'standard')],
-    [['-m', 'alnum'], ok(1, 12, 'alnum')],
-    [['--count=5'], ok(5, 12, 'standard')],
+    [['-m', 'alnum'], ok(1, 22, 'alnum')],
+    [['--count=5'], ok(5, 21, 'standard')],
     [['--length=20'], ok(1, 20, 'standard')],
-    [['--mode=alnum'], ok(1, 12, 'alnum')],
+    [['--mode=alnum'], ok(1, 22, 'alnum')],
     [['-m', 'alnum', '-l', '20', '-c', '5'], ok(5, 20, 'alnum')],
     [['--mode=alnum', '--length=20', '--count=5'], ok(5, 20, 'alnum')],
     [['-c', '5', '--length=20', '-m', 'full', '-n'], ok(5, 20, 'full', { hashes: [] })],
     // 位置引数と組み合わせる（位置引数は常に count → length → mode の順）
     [['5', '20', '--mode=alnum'], ok(5, 20, 'alnum')],
-    [['--mode=alnum', '5'], ok(5, 12, 'alnum')],
+    [['--mode=alnum', '5'], ok(5, 22, 'alnum')],
     [['-m', 'alnum', '5', '20'], ok(5, 20, 'alnum')],
     [['5', '-l', '20'], ok(5, 20, 'standard')],
   ])('%j', (argv, expected) => {
@@ -114,7 +115,7 @@ describe('parseArgs：--hash', () => {
     [['--hash=default,sha512'], ['md5', 'apr1', 'bcrypt', 'argon2id', 'sha512']],
     [['--hash=all,md5'], ['md5', 'apr1', 'bcrypt', 'argon2i', 'argon2id', 'sha512']],
   ])('%j', (argv, hashes) => {
-    expect(parseArgs(argv)).toEqual(ok(1, 12, 'standard', { hashes }));
+    expect(parseArgs(argv)).toEqual(ok(1, 21, 'standard', { hashes }));
   });
 
   test('ほかの引数と組み合わせられる', () => {
@@ -171,6 +172,29 @@ describe('parseArgs：--bits', () => {
     expect(parseArgs(argv)).toEqual(expected);
   });
 
+  // length も bits も指定しない場合は --bits=128 と同じ長さ（どの mode でも 8〜72 に収まる）
+  const DEFAULT_LENGTHS: Record<string, number> = {
+    standard: 21,
+    readable: 22,
+    full: 20,
+    alnum: 22,
+    alpha: 23,
+    number: 39,
+    lalnum: 25,
+    lower: 25,
+    ualnum: 25,
+    upper: 25,
+  };
+
+  test('DEFAULT_LENGTHS にすべての mode が載っている', () => {
+    expect(Object.keys(DEFAULT_LENGTHS).sort()).toEqual(Object.keys(MODES).sort());
+  });
+
+  test.each(Object.entries(DEFAULT_LENGTHS))('デフォルトの長さ：%s → %i', (mode, length) => {
+    expect(parseArgs(['-m', mode])).toEqual(ok(1, length, mode));
+    expect(parseArgs(['-m', mode, '--bits=128'])).toEqual(ok(1, length, mode));
+  });
+
   test.each([
     [['--bits=0'], ng('bits is invalid')],
     [['--bits='], ng('bits is invalid')],
@@ -215,12 +239,12 @@ describe('parseArgs：--bits', () => {
 
 describe('parseArgs：-f / --format / --json', () => {
   test.each([
-    [['-f', 'plain'], ok(1, 12, 'standard', { format: 'plain' })],
-    [['-f', 'json'], ok(1, 12, 'standard', { format: 'json' })],
-    [['--format=json'], ok(1, 12, 'standard', { format: 'json' })],
+    [['-f', 'plain'], ok(1, 21, 'standard', { format: 'plain' })],
+    [['-f', 'json'], ok(1, 21, 'standard', { format: 'json' })],
+    [['--format=json'], ok(1, 21, 'standard', { format: 'json' })],
     [['3', '16', 'full', '-f', 'json', '-n'], ok(3, 16, 'full', { hashes: [], format: 'json' })],
-    [['--format=json', '--hash=md5'], ok(1, 12, 'standard', { hashes: ['md5'], format: 'json' })],
-    [['--json'], ok(1, 12, 'standard', { format: 'json' })],
+    [['--format=json', '--hash=md5'], ok(1, 21, 'standard', { hashes: ['md5'], format: 'json' })],
+    [['--json'], ok(1, 21, 'standard', { format: 'json' })],
     [['3', '--json', '16', '-n'], ok(3, 16, 'standard', { hashes: [], format: 'json' })],
   ])('%j', (argv, expected) => {
     expect(parseArgs(argv)).toEqual(expected);

@@ -4,7 +4,8 @@ import { bitsPerChar, DEFAULT_MODE, isMode, type Mode } from './modes.ts';
 import { failure, success, type Result } from './result.ts';
 
 export const DEFAULT_COUNT = 1;
-export const DEFAULT_LENGTH = 12;
+/** length も bits も指定しない場合は、mode ごとにこのビット数以上になる最小の長さを使う */
+export const DEFAULT_BITS = 128;
 export const MIN_LENGTH = 8;
 /** bcrypt が扱えるパスワード長の上限に合わせる */
 export const MAX_LENGTH = 72;
@@ -59,6 +60,7 @@ interface RawArgs {
  * - count / length / mode は、位置引数でも `-c N` / `--count=N` などのオプションでも指定できる。
  *   位置引数は常に count → length → mode の順に対応し、同じ値を2回指定するとエラーになる。
  * - `--bits=N` で、N ビット以上になる最小の長さを指定できる。length との併用はエラー。
+ *   length も bits も指定しない場合は、`--bits=128`（DEFAULT_BITS）と同じ長さになる。
  * - `--json` は `--format=json` と同じ。
  * - `--hash=LIST` で出力するハッシュを選べる。`-n` / `--no-hash` との併用はエラー。
  * - `-h` / `--help` があれば、ほかの引数に関係なく（不正な引数があっても）help を返す。
@@ -173,15 +175,18 @@ function resolveOptions({ values, noHash }: RawArgs): Result<Options> {
     return failure('count is invalid');
   }
 
-  let length = values.length === undefined ? DEFAULT_LENGTH : parseInteger(values.length);
-  if (length === undefined) {
-    return failure('length is invalid');
-  }
-  if (length < MIN_LENGTH) {
-    return failure('length too short');
-  }
-  if (length > MAX_LENGTH) {
-    return failure('length too long');
+  let length: number | undefined;
+  if (values.length !== undefined) {
+    length = parseInteger(values.length);
+    if (length === undefined) {
+      return failure('length is invalid');
+    }
+    if (length < MIN_LENGTH) {
+      return failure('length too short');
+    }
+    if (length > MAX_LENGTH) {
+      return failure('length too long');
+    }
   }
 
   const bits = values.bits === undefined ? undefined : parseInteger(values.bits);
@@ -194,8 +199,9 @@ function resolveOptions({ values, noHash }: RawArgs): Result<Options> {
     return failure('mode is invalid');
   }
 
-  if (bits !== undefined) {
-    length = lengthForBits(bits, mode);
+  // bits と length は併用できないので、length がなければ bits（指定がなければ DEFAULT_BITS）から長さを求める
+  if (length === undefined) {
+    length = lengthForBits(bits ?? DEFAULT_BITS, mode);
     if (length < MIN_LENGTH) {
       return failure('bits too small');
     }

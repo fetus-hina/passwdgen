@@ -65,7 +65,7 @@ describe('run', () => {
 
   test('引数なしのデフォルト値をヘッダに表示する', async () => {
     const { stdout } = await capture(['--no-hash']);
-    expect(stdout.split('\n')[0]).toBe('Generate 1 password(s), length=12, mode=standard, bits=73.30');
+    expect(stdout.split('\n')[0]).toBe('Generate 1 password(s), length=21, mode=standard, bits=128.28');
   });
 
   test('ハッシュあり：仕様どおりの書式で、各ハッシュがパスワードを検証できる', async () => {
@@ -112,7 +112,8 @@ describe('run', () => {
   test('使い方には書式、すべての mode、オプションが載っている', () => {
     const text = helpText();
     expect(text).toMatch(/^Usage: passwdgen \[options\] \[count\] \[length\] \[mode\]\n/);
-    expect(text).toContain('8-72 (default: 12)');
+    expect(text).toContain('password length, 8-72\n');
+    expect(text).toContain('(default: the shortest length with at least 128 bits, see --bits)');
     for (const mode of Object.keys(MODES)) {
       expect(text).toMatch(new RegExp(`^  ${mode} +\\S`, 'm'));
     }

@@ -1,4 +1,4 @@
-import { DEFAULT_COUNT, DEFAULT_LENGTH, MAX_LENGTH, MIN_LENGTH } from './args.ts';
+import { DEFAULT_BITS, DEFAULT_COUNT, MAX_LENGTH, MIN_LENGTH } from './args.ts';
 import { DEFAULT_FORMAT, FORMATS } from './formats.ts';
 import { HASH_ALGORITHMS, HASH_GROUPS } from './hashes.ts';
 import { DEFAULT_MODE, MODES } from './modes.ts';
@@ -20,7 +20,8 @@ Generate random passwords and print their hashes.
 
 Arguments (each can also be given as an option below):
   count   number of passwords to generate (default: ${DEFAULT_COUNT})
-  length  password length, ${MIN_LENGTH}-${MAX_LENGTH} (default: ${DEFAULT_LENGTH})
+  length  password length, ${MIN_LENGTH}-${MAX_LENGTH}
+          (default: the shortest length with at least ${DEFAULT_BITS} bits, see --bits)
   mode    character set (default: ${DEFAULT_MODE})
 
 Options:
