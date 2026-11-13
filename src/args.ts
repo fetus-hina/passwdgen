@@ -1,6 +1,6 @@
 import { DEFAULT_FORMAT, isFormat, type Format } from './formats.ts';
 import { DEFAULT_HASHES, parseHashList, type HashId } from './hashes.ts';
-import { DEFAULT_MODE, isMode, MODES, type Mode } from './modes.ts';
+import { bitsPerChar, DEFAULT_MODE, isMode, type Mode } from './modes.ts';
 import { failure, success, type Result } from './result.ts';
 
 export const DEFAULT_COUNT = 1;
@@ -195,7 +195,7 @@ function resolveOptions({ values, noHash }: RawArgs): Result<Options> {
   }
 
   if (bits !== undefined) {
-    length = lengthForBits(bits, MODES[mode].charset.length);
+    length = lengthForBits(bits, mode);
     if (length < MIN_LENGTH) {
       return failure('bits too small');
     }
@@ -221,12 +221,9 @@ function resolveOptions({ values, noHash }: RawArgs): Result<Options> {
   return success({ count, length, mode, hashes, format });
 }
 
-/**
- * 1文字あたり log2(charsetSize) ビットとして、bits ビット以上になる最小の長さを返す。
- * 生成条件（mode の strict）による減少は考慮しない。
- */
-export function lengthForBits(bits: number, charsetSize: number): number {
-  return Math.ceil(bits / Math.log2(charsetSize));
+/** 1文字あたり bitsPerChar(mode) ビットとして、bits ビット以上になる最小の長さを返す */
+export function lengthForBits(bits: number, mode: Mode): number {
+  return Math.ceil(bits / bitsPerChar(mode));
 }
 
 /** `-` で始まり、負の数（`-1` など）に見えないものをオプションとみなす */

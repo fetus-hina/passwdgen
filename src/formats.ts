@@ -1,5 +1,5 @@
 import type { HashId } from './hashes.ts';
-import type { Mode } from './modes.ts';
+import { bitsPerChar, type Mode } from './modes.ts';
 
 /** ハッシュの識別子と、出力する値 */
 export type HashEntry = readonly [id: HashId, value: string];
@@ -31,7 +31,8 @@ export interface Writer {
 const INDENT = ' '.repeat(8);
 
 const plainWriter: Writer = {
-  begin: ({ count, length, mode }) => `Generate ${count} password(s), length=${length}, mode=${mode}\n\n`,
+  begin: ({ count, length, mode }) =>
+    `Generate ${count} password(s), length=${length}, mode=${mode}, bits=${(length * bitsPerChar(mode)).toFixed(2)}\n\n`,
   entry: ({ password, hashes }) => `${password}\n${hashes.map(([, value]) => `${INDENT}${value}\n`).join('')}`,
   separator: '',
   end: '',

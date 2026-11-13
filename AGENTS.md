@@ -214,7 +214,7 @@ passwdgen -h | --help
 #### plain
 
 ```
-Generate 2 password(s), length=12, mode=standard
+Generate 2 password(s), length=12, mode=standard, bits=73.30
                                                      ← 空行
 <password1>
         $1$<salt8>$<hash22>
@@ -225,6 +225,9 @@ Generate 2 password(s), length=12, mode=standard
         ...
 ```
 
+- ヘッダ行の `bits=` は、計算上のビット数 `length × log2(mode の文字集合の文字数)` を小数点以下2桁で表示します（`toFixed(2)`、例：`73.30`、`72.00`）。
+  - `--bits` で指定した値ではなく、実際の length と mode から計算し直した値です。
+  - 文字集合から一様に選ぶものとして計算し、生成条件（先頭と末尾の英数字など）による減少は無視します（ユーザーが決めた仕様）。`--bits` からの長さの計算と同じ考え方です。
 - ハッシュ行の先頭にはスペースが8個付きます。
 - 上の例は `--hash` を指定しない（デフォルトの）場合です。`--hash` を指定した場合は、指定したハッシュの行だけを出力します。
 - `-n` / `--no-hash` を付けた場合は、パスワードの行だけを出力します。ヘッダ行と空行は出力します。

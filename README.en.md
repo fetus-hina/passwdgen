@@ -84,7 +84,7 @@ In `standard`, `readable` and `full` modes, every password contains at least one
 
 ```console
 $ ./bin/passwdgen 1 16
-Generate 1 password(s), length=16, mode=standard
+Generate 1 password(s), length=16, mode=standard, bits=97.74
 
 Xk7%hR2m@bQe9wTz
         $1$a1B2c3D4$...
@@ -94,6 +94,8 @@ Xk7%hR2m@bQe9wTz
 ```
 
 (The password and hashes are illustrative.)
+
+`bits=` on the first line is the calculated strength in bits (`length × log2(number of characters in the mode)`, two decimal places). It ignores the rules of `standard`, `readable` and `full` modes, so the actual entropy is slightly lower.
 
 ### Hashes
 

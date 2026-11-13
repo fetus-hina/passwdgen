@@ -28,7 +28,7 @@ describe('bin/passwdgen', () => {
     const result = exec(`./${BIN}`, ['2', '20', 'alnum', '--no-hash']);
     expect(result.status).toBe(0);
     expect(result.stderr).toBe('');
-    expect(result.stdout).toMatch(/^Generate 2 password\(s\), length=20, mode=alnum\n\n[0-9A-Za-z]{20}\n[0-9A-Za-z]{20}\n$/);
+    expect(result.stdout).toMatch(/^Generate 2 password\(s\), length=20, mode=alnum, bits=119\.08\n\n[0-9A-Za-z]{20}\n[0-9A-Za-z]{20}\n$/);
   });
 
   test('--help で使い方を表示する', () => {
@@ -63,7 +63,7 @@ describe('bin/passwdgen', () => {
   test('パイプの読み手が先に終了しても、エラーを出さず終了コード 0（ハッシュあり）', () => {
     // ヘッダを読んだ時点で head が終了し、ハッシュ計算後のパスワード行の書き込みが EPIPE になる
     const result = pipeToHead('3 12');
-    expect(result.stdout).toBe('Generate 3 password(s), length=12, mode=standard\n');
+    expect(result.stdout).toBe('Generate 3 password(s), length=12, mode=standard, bits=73.30\n');
     expect(result.stderr).toBe('');
     expect(result.status).toBe('0');
   });
@@ -73,7 +73,7 @@ describe('bin/passwdgen', () => {
     const started = Date.now();
     const result = pipeToHead('100000000 8 alnum --no-hash');
     expect(Date.now() - started).toBeLessThan(5_000);
-    expect(result.stdout).toBe('Generate 100000000 password(s), length=8, mode=alnum\n');
+    expect(result.stdout).toBe('Generate 100000000 password(s), length=8, mode=alnum, bits=47.63\n');
     expect(result.stderr).toBe('');
     expect(result.status).toBe('0');
   });

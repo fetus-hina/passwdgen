@@ -84,7 +84,7 @@ passwdgen --bits=128 -m alnum
 
 ```console
 $ ./bin/passwdgen 1 16
-Generate 1 password(s), length=16, mode=standard
+Generate 1 password(s), length=16, mode=standard, bits=97.74
 
 Xk7%hR2m@bQe9wTz
         $1$a1B2c3D4$...
@@ -94,6 +94,8 @@ Xk7%hR2m@bQe9wTz
 ```
 
 （パスワードとハッシュは説明用の値です。）
+
+1行目の `bits=` は、計算上のビット数（`長さ × log2(mode の文字数)`、小数点以下2桁）です。`standard`、`readable`、`full` の生成条件による減少は考慮していないので、実際のエントロピーは少し小さくなります。
 
 ### ハッシュ
 

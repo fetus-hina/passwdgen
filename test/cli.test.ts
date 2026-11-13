@@ -29,7 +29,7 @@ describe('run', () => {
     expect(stderr).toBe('');
     const lines = stdout.split('\n');
     expect(lines).toHaveLength(6);
-    expect(lines[0]).toBe('Generate 3 password(s), length=10, mode=number');
+    expect(lines[0]).toBe('Generate 3 password(s), length=10, mode=number, bits=33.22');
     expect(lines[1]).toBe('');
     for (const line of lines.slice(2, 5)) {
       expect(line).toMatch(/^[0-9]{10}$/);
@@ -40,26 +40,32 @@ describe('run', () => {
   test('-n は --no-hash と同じ', async () => {
     const { code, stdout } = await capture(['2', '10', 'number', '-n']);
     expect(code).toBe(0);
-    expect(stdout).toMatch(/^Generate 2 password\(s\), length=10, mode=number\n\n[0-9]{10}\n[0-9]{10}\n$/);
+    expect(stdout).toMatch(/^Generate 2 password\(s\), length=10, mode=number, bits=33\.22\n\n[0-9]{10}\n[0-9]{10}\n$/);
   });
 
   test('-c / -l / -m で指定した値を使う', async () => {
     const { code, stdout } = await capture(['-m', 'number', '-l', '10', '-c', '2', '-n']);
     expect(code).toBe(0);
-    expect(stdout).toMatch(/^Generate 2 password\(s\), length=10, mode=number\n\n[0-9]{10}\n[0-9]{10}\n$/);
+    expect(stdout).toMatch(/^Generate 2 password\(s\), length=10, mode=number, bits=33\.22\n\n[0-9]{10}\n[0-9]{10}\n$/);
   });
 
   test('--bits で求めた長さをヘッダに表示し、その長さで生成する', async () => {
     const { code, stdout } = await capture(['--bits=256', '-n']);
     expect(code).toBe(0);
     const lines = stdout.split('\n');
-    expect(lines[0]).toBe('Generate 1 password(s), length=42, mode=standard');
+    expect(lines[0]).toBe('Generate 1 password(s), length=42, mode=standard, bits=256.56');
     expect(lines[2]).toHaveLength(42);
+  });
+
+  test('ヘッダの bits は length と mode から計算し直し、小数点以下2桁で表示する', async () => {
+    // readable は 64 種類なので 1文字ちょうど 6 ビット。--bits=47 でも表示は 8 × 6 = 48.00
+    const { stdout } = await capture(['--bits=47', '-m', 'readable', '-n']);
+    expect(stdout.split('\n')[0]).toBe('Generate 1 password(s), length=8, mode=readable, bits=48.00');
   });
 
   test('引数なしのデフォルト値をヘッダに表示する', async () => {
     const { stdout } = await capture(['--no-hash']);
-    expect(stdout.split('\n')[0]).toBe('Generate 1 password(s), length=12, mode=standard');
+    expect(stdout.split('\n')[0]).toBe('Generate 1 password(s), length=12, mode=standard, bits=73.30');
   });
 
   test('ハッシュあり：仕様どおりの書式で、各ハッシュがパスワードを検証できる', async () => {
@@ -69,7 +75,7 @@ describe('run', () => {
 
     const lines = stdout.split('\n');
     expect(lines).toHaveLength(8);
-    expect(lines[0]).toBe('Generate 1 password(s), length=16, mode=standard');
+    expect(lines[0]).toBe('Generate 1 password(s), length=16, mode=standard, bits=97.74');
     expect(lines[1]).toBe('');
     expect(lines[7]).toBe('');
 
@@ -203,7 +209,7 @@ describe('run', () => {
 
   test('-f plain は今までどおりの出力', async () => {
     const { stdout } = await capture(['1', '10', 'number', '-f', 'plain', '-n']);
-    expect(stdout).toMatch(/^Generate 1 password\(s\), length=10, mode=number\n\n[0-9]{10}\n$/);
+    expect(stdout).toMatch(/^Generate 1 password\(s\), length=10, mode=number, bits=33\.22\n\n[0-9]{10}\n$/);
   });
 
   test('エラー時は stderr に出力し、終了コード 1 を返す', async () => {
@@ -234,7 +240,7 @@ describe('run', () => {
     // 1回目：ヘッダと空行、2回目：1件目、3回目：2件目（ここで失敗）
     const written = await runUntilWriteFails(['1000', '8', 'alnum', '--no-hash'], 3);
     expect(written).toHaveLength(2);
-    expect(written[0]).toBe('Generate 1000 password(s), length=8, mode=alnum\n\n');
+    expect(written[0]).toBe('Generate 1000 password(s), length=8, mode=alnum, bits=47.63\n\n');
     expect(written[1]).toMatch(/^[0-9A-Za-z]{8}\n$/);
   });
 

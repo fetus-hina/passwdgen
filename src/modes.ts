@@ -41,6 +41,14 @@ export type Mode = keyof typeof MODES;
 
 export const DEFAULT_MODE: Mode = 'standard';
 
+/**
+ * 1文字あたりのビット数（log2(文字集合の文字数)）。
+ * 文字集合から一様に選ぶものとして計算し、生成条件（strict）による減少は考慮しない。
+ */
+export function bitsPerChar(mode: Mode): number {
+  return Math.log2(MODES[mode].charset.length);
+}
+
 export function isMode(value: string): value is Mode {
   return Object.hasOwn(MODES, value);
 }
